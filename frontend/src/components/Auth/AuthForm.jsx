@@ -85,9 +85,9 @@ const AuthForm = ({ isLogin }) => {
                 type="submit"
                 className="
                     w-full py-3.5 rounded-xl 
-                    bg-gradient-to-r from-indigo-600 to-violet-600 
+                    bg-linear-to-r from-red-950 to-red-600 
                     text-white font-bold tracking-wide
-                    hover:from-indigo-700 hover:to-violet-700 
+                    hover:from-red-700 hover:to-red-700 
                     hover:shadow-lg hover:-translate-y-px
                     active:translate-y-0
                     transition-all duration-200

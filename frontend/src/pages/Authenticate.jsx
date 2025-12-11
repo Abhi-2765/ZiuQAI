@@ -11,7 +11,7 @@ const AuthenticatePage = () => {
 
             <div className="hidden md:flex flex-col justify-center items-center 
                 relative overflow-hidden
-                bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800 
+                bg-gradient-to-br from-blue-950 via-purple-700 to-blue-900 
                 text-center px-10 text-white"
             >
                 <div className="absolute inset-0 bg-white/5 backdrop-blur-3xl opacity-20 pointer-events-none"></div>
