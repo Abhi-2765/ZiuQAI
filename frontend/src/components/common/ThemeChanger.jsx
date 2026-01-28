@@ -11,8 +11,8 @@ const ThemeChanger = () => {
                 w-12 h-12 rounded-full flex items-center justify-center
                 transition-all duration-300 ease-in-out
                 ${theme === "light"
-                    ? "bg-slate-100 border border-slate-700 border-2"
-                    : "bg-slate-800 border border-slate-300 border-2"
+                    ? "bg-slate-100 border-slate-700 border-2"
+                    : "bg-slate-800 border-slate-300 border-2"
                 }
                 hover:scale-105
             `}

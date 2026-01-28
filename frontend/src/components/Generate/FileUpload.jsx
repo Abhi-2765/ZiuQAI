@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { UploadCloud, File, X, Check, Loader2 } from "lucide-react";
+import { UploadCloud, File, X, Check } from "lucide-react";
 
 export default function FileUpload() {
     const [files, setFiles] = useState([]);
@@ -35,13 +35,12 @@ export default function FileUpload() {
 
     const handleFiles = (selectedFiles) => {
         const newFiles = Array.from(selectedFiles).map((file) => ({
-            id: Math.random().toString(36).substr(2, 9),
+            id: crypto.randomUUID(),
             file,
             name: file.name,
             size: (file.size / 1024 / 1024).toFixed(2) + " MB",
             progress: 0,
-            uploaded: false,
-            error: false
+            uploaded: false
         }));
         setFiles((prev) => [...prev, ...newFiles]);
     };
@@ -52,43 +51,44 @@ export default function FileUpload() {
 
     const handleUpload = () => {
         if (files.length === 0 || uploading) return;
-
         setUploading(true);
 
-        // Simulating upload for each file
-        const updateProgress = (fileId) => {
-            return new Promise((resolve) => {
+        const uploadFile = (fileId) =>
+            new Promise((resolve) => {
                 let progress = 0;
                 const interval = setInterval(() => {
                     progress += Math.random() * 30;
-                    if (progress > 100) progress = 100;
+                    if (progress >= 100) progress = 100;
 
-                    setFiles((prev) => prev.map(f =>
-                        f.id === fileId ? { ...f, progress } : f
-                    ));
+                    setFiles((prev) =>
+                        prev.map((f) =>
+                            f.id === fileId ? { ...f, progress } : f
+                        )
+                    );
 
                     if (progress === 100) {
                         clearInterval(interval);
-                        setFiles((prev) => prev.map(f =>
-                            f.id === fileId ? { ...f, uploaded: true } : f
-                        ));
+                        setFiles((prev) =>
+                            prev.map((f) =>
+                                f.id === fileId ? { ...f, uploaded: true } : f
+                            )
+                        );
                         resolve();
                     }
                 }, 400);
             });
-        };
 
-        Promise.all(files.filter(f => !f.uploaded).map(f => updateProgress(f.id)))
+        Promise.all(files.filter(f => !f.uploaded).map(f => uploadFile(f.id)))
             .then(() => setUploading(false));
     };
 
     return (
         <div className="h-full flex flex-col">
+            {/* Drop Zone */}
             <div
                 className={`
-                    flex-1 flex flex-col items-center justify-center 
-                    border-2 border-dashed rounded-xl transition-all duration-200
-                    mt-2
+                    flex-1 flex flex-col items-center justify-center
+                    border-2 border-dashed rounded-xl transition-all duration-200 mt-2
                     ${dragActive
                         ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/10"
                         : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50"}
@@ -130,7 +130,9 @@ export default function FileUpload() {
             {files.length > 0 && (
                 <div className="mt-6 space-y-3">
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Attached Files</p>
+                        <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+                            Attached Files
+                        </p>
                         <button
                             onClick={handleUpload}
                             disabled={uploading || files.every(f => f.uploaded)}
@@ -141,35 +143,52 @@ export default function FileUpload() {
                     </div>
 
                     {files.map((file) => (
-                        <div key={file.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                                <File size={20} />
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                                <div className="flex justify-between mb-1">
-                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{file.name}</p>
-                                    <p className="text-xs text-slate-500">{file.size}</p>
-                                </div>
-                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full transition-all duration-300 ${file.uploaded ? "bg-green-500" : "bg-indigo-600"}`}
-                                        style={{ width: `${file.uploaded ? 100 : file.progress}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => handleRemove(file.id)}
-                                className="text-slate-400 hover:text-red-500 transition p-1"
-                                disabled={uploading}
-                            >
-                                {file.uploaded ? <Check size={20} className="text-green-500" /> : <X size={20} />}
-                            </button>
-                        </div>
+                        <FileCard
+                            key={file.id}
+                            file={file}
+                            onRemove={handleRemove}
+                            uploading={uploading}
+                        />
                     ))}
                 </div>
             )}
+        </div>
+    );
+}
+
+function FileCard({ file, onRemove, uploading }) {
+    return (
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <File size={20} />
+            </div>
+
+            <div className="flex-1 min-w-0">
+                <div className="flex justify-between mb-1">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
+                        {file.name}
+                    </p>
+                    <p className="text-xs text-slate-500">{file.size}</p>
+                </div>
+
+                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                        className={`h-full transition-all duration-300 ${file.uploaded ? "bg-green-500" : "bg-indigo-600"
+                            }`}
+                        style={{ width: `${file.uploaded ? 100 : file.progress}%` }}
+                    />
+                </div>
+            </div>
+
+            <button
+                onClick={() => onRemove(file.id)}
+                disabled={uploading}
+                className="text-slate-400 hover:text-red-500 transition p-1"
+            >
+                {file.uploaded
+                    ? <Check size={20} className="text-green-500" />
+                    : <X size={20} />}
+            </button>
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import google from "../../assets/google.png";
+import { toast } from "react-toastify";
 
-const Others = () => {
+export default function Others() {
     return (
         <button
             className="
@@ -12,11 +13,10 @@ const Others = () => {
                 hover:bg-slate-100 dark:hover:bg-slate-600 
                 transition
             "
+            onClick={() => toast.info("Google Sign-In Coming Soon!")}
         >
             <img src={google} alt="Google" className="w-5 h-5" />
             Continue with Google
         </button>
     );
 };
-
-export default Others;

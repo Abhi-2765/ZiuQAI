@@ -6,14 +6,34 @@ import Authenticate from "./pages/Authenticate"
 import { useLocation } from "react-router"
 import Dashboard from "./pages/Dashboard"
 import GenerateQuiz from "./pages/GenerateQuiz"
-import Loading from "./components/common/Loading"
 import Home from "./pages/Home"
+import Arena from "./pages/Arena"
+import Standings from "./pages/Standings"
+
+import { ToastContainer, Bounce } from "react-toastify";
+import { useTheme } from "./context/ThemeProvider"
 
 const App = () => {
   const location = useLocation()
+  const { theme } = useTheme()
   return (
     <>
-      <Navbar />
+      {location.pathname !== "/arena" && <Navbar />}
+
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme={theme}
+        transition={Bounce}
+      />
+
       <Routes>
         <Route path="/auth" element={<Authenticate />} />
         <Route path="/" element={<Home />} />
@@ -24,6 +44,8 @@ const App = () => {
           <Route path="/host" element={<></>} />
           <Route path="/attempt" element={<></>} />
           <Route path="/profile" element={<></>} />
+          <Route path="/arena" element={<Arena />} />
+          <Route path="/standings" element={<Standings />} />
         </Route>
       </Routes>
       {location.pathname === "/" && <Footer />}

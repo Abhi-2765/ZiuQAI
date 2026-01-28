@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AuthForm from "../components/Auth/AuthForm";
 import Others from "../components/Auth/Others";
 import loginArt from "../assets/loginArt.png";
 
-const AuthenticatePage = () => {
+export default function AuthenticatePage() {
     const [isLogin, setIsLogin] = useState(false);
+
+    useEffect(() => {
+        document.title = "Squirrel AI - Authenticate";
+    }, []);
 
     return (
         <div className="w-full min-h-screen grid grid-cols-1 md:grid-cols-2 overflow-x-hidden font-jockey">
 
             <div className="hidden md:flex flex-col justify-center items-center 
                 relative overflow-hidden
-                bg-gradient-to-br from-blue-950 via-purple-700 to-blue-900 
+                bg-linear-to-br from-blue-950 via-purple-700 to-blue-900 
                 text-center px-10 text-white"
             >
                 <div className="absolute inset-0 bg-white/5 backdrop-blur-3xl opacity-20 pointer-events-none"></div>
@@ -85,4 +89,3 @@ const AuthenticatePage = () => {
     );
 };
 
-export default AuthenticatePage;

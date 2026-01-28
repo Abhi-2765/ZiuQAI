@@ -12,7 +12,7 @@ import {
 export default function Home() {
     return (
         <div className="
-            w-full min-h-screen mt-10
+            w-full min-h-screen pt-10
             bg-slate-50 dark:bg-slate-900 
             text-slate-800 dark:text-slate-100 
             font-vend
@@ -54,7 +54,6 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* HOW IT WORKS */}
             <section className="max-w-6xl mx-auto px-6 mt-20">
                 <h2 className="text-center text-3xl font-bold">
                     How It Works

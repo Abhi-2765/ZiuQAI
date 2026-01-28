@@ -1,0 +1,73 @@
+# ============================
+# Python / FastAPI
+# ============================
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Python build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ============================
+# Environment variables
+# ============================
+
+# Do NOT commit secrets
+.env
+*.env
+backend.env
+db.env
+
+# ============================
+# Logs
+# ============================
+
+*.log
+
+# ============================
+# VS Code / IDE
+# ============================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ============================
+# Docker
+# ============================
+
+# Local Docker artifacts
+docker-compose.override.yml
+
+# ============================
+# OS files
+# ============================
+
+.DS_Store
+Thumbs.db
+
+# ============================
+# Misc
+# ============================
+
+.cache/
+pip-wheel-metadata/
