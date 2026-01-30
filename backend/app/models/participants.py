@@ -11,7 +11,7 @@ class Participant(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
 
-    quiz_id: Mapped[int] = mapped_column(Integer, ForeignKey("quizes.id", ondelete="CASCADE"), nullable=False, index=True)
+    session_id: Mapped[int] = mapped_column(Integer, ForeignKey("quiz_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.uid", ondelete="CASCADE"), nullable=False, index=True)
 
     score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)

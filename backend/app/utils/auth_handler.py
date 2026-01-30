@@ -13,7 +13,7 @@ from ..models.users import User
 
 SECRET_KEY = "hf;ksdajfsdfhiosufwernh"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 24 * 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
