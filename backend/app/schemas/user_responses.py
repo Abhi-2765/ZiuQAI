@@ -1,14 +1,14 @@
 from pydantic import BaseModel
 
 class UserResponseCreate(BaseModel):
-    quiz_id: int
+    participant_id: int
     question_id: int
-    session_id: int
     response: str
 
 class UserResponseUpdate(BaseModel):
     response_id: int
     response: str
+
 class UserResponseDelete(BaseModel):
     response_id: int
 

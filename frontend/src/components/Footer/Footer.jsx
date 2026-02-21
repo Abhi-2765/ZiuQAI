@@ -20,7 +20,7 @@ const Footer = () => {
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
 
                 <div>
-                    <Logo text="SquirrelAI" />
+                    <Logo text="ZiuQ.AI" />
                     <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
                         Empowering smarter quizzes with AI-driven learning tools.
                     </p>

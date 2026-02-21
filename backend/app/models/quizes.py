@@ -27,7 +27,10 @@ class Quiz(Base):
         SQLEnum(Difficulty, name="quiz_difficulty_enum"),
         nullable=False,
     )
-    quiz_duration: Mapped[int] = mapped_column(nullable=False)
+
+    quiz_start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    quiz_duration: Mapped[int] = mapped_column(Integer, nullable=False)
+
     show_leaderboard: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
@@ -47,11 +50,11 @@ class Quiz(Base):
         cascade="all, delete-orphan",
     )
 
-    quiz_sessions: Mapped[List["QuizSession"]] = relationship(
-        "QuizSession",
-        back_populates="quiz",
-        cascade="all, delete-orphan",
-    )
+    # quiz_sessions: Mapped[List["QuizSession"]] = relationship(
+    #     "QuizSession",
+    #     back_populates="quiz",
+    #     cascade="all, delete-orphan",
+    # )
 
     participants: Mapped[List["Participant"]] = relationship(
         "Participant",

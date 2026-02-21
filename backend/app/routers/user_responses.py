@@ -4,9 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.base import get_db
 from ..models.user_responses import UserResponse
-from ..models.quizes import Quiz
 from ..models.questions import Question
-from ..models.quiz_sessions import QuizSession
+from ..models.participants import Participant
 from ..schemas.user_responses import UserResponseCreate, UserResponseUpdate, UserResponseDelete, UserResponseResponse
 
 router = APIRouter()
@@ -18,29 +17,24 @@ async def create_user_response(request: Request, user_response: UserResponseCrea
         if not uid:
             raise HTTPException(status_code=401, detail="Unauthorized")
     
-        quiz_id, question_id, session_id, response = user_response.quiz_id, user_response.question_id, user_response.session_id, user_response.response
-        if not quiz_id or not question_id or not session_id or not response:
+        participant_id, question_id, response = user_response.participant_id, user_response.question_id, user_response.response
+        if not participant_id or not question_id or not response:
             raise HTTPException(status_code=400, detail="Something went wrong")
         
-        quiz = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
-        if not quiz.scalars().first():
-            raise HTTPException(status_code=404, detail="Quiz not found")
+        participant = await db.execute(select(Participant).where(Participant.id == participant_id))
+        if not participant.scalars().first():
+            raise HTTPException(status_code=404, detail="Participant not found")
         
         question = await db.execute(select(Question).where(Question.id == question_id))
         if not question.scalars().first():
             raise HTTPException(status_code=404, detail="Question not found")
         
-        quiz_session = await db.execute(select(QuizSession).where(QuizSession.id == session_id))
-        if not quiz_session.scalars().first():
-            raise HTTPException(status_code=404, detail="Quiz session not found")
-        
         new_user_response = UserResponse(
-            uid=uid,
-            quiz_id=quiz_id,
+            participant_id=participant_id,
             qid=question_id,
-            session_id=session_id,
             response=response,
         )
+
         db.add(new_user_response)
         await db.commit()
         await db.refresh(new_user_response)

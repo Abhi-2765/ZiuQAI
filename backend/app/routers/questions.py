@@ -17,13 +17,10 @@ async def create_question(request: Request, ques: QuestionCreate, db: AsyncSessi
             raise HTTPException(status_code=401, detail="Unauthorized")
 
         quiz_id, question, question_type, correct_answer = ques.quiz_id, ques.question, ques.question_type, ques.correct_answer
+        
         if not quiz_id or not question or not question_type or not correct_answer:
             raise HTTPException(status_code=400, detail="Something went wrong")
-        
-        quiz = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
-        if not quiz.scalars().first():
-            raise HTTPException(status_code=404, detail="Quiz not found")
-        
+
         if question_type not in QuestionType:
             raise HTTPException(status_code=400, detail="Invalid question type")
 
@@ -54,10 +51,6 @@ async def update_question(request: Request, ques: QuestionUpdate, db: AsyncSessi
         if not question_id or not question or not question_type or not correct_answer:
             raise HTTPException(status_code=400, detail="Something went wrong")
         
-        question = await db.execute(select(Question).where(Question.id == question_id))
-        if not question.scalars().first():
-            raise HTTPException(status_code=404, detail="Question not found")
-        
         if question_type not in QuestionType:
             raise HTTPException(status_code=400, detail="Invalid question type")
 
@@ -86,7 +79,7 @@ async def delete_question(request: Request, ques: QuestionDelete, db: AsyncSessi
         
         question = await db.execute(select(Question).where(Question.id == question_id))
         if not question.scalars().first():
-            raise HTTPException(status_code=404, detail="Question not found")
+            raise HTTPException(status_code=404, detail="Question not found")   
 
         await db.delete(question)
         await db.commit()

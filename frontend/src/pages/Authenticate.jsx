@@ -7,7 +7,7 @@ export default function AuthenticatePage() {
     const [isLogin, setIsLogin] = useState(false);
 
     useEffect(() => {
-        document.title = "Squirrel AI - Authenticate";
+        document.title = "ZiuQ.AI - Authenticate";
     }, []);
 
     return (

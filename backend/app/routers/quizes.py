@@ -16,11 +16,15 @@ async def create_quiz(
 ):
     try:
         uid = request.state.uid
-        print(uid)
+
+        if not uid:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
         new_quiz = Quiz(
             quiz_name=quiz.quiz_name,
             question_count=quiz.question_count,
             quiz_difficulty=quiz.quiz_difficulty,
+            quiz_start_time=quiz.quiz_start_time,
             quiz_duration=quiz.quiz_duration,
             show_leaderboard=quiz.show_leaderboard,
             creator_uid=uid,
@@ -29,8 +33,6 @@ async def create_quiz(
         db.add(new_quiz)
         await db.commit()
         await db.refresh(new_quiz)
-
-        print(new_quiz)
 
         return new_quiz
 
@@ -46,23 +48,28 @@ async def update_quiz(
     quiz: QuizUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    uid = request.state.uid
-
-    result = await db.execute(
-        select(Quiz).where(
-            Quiz.id == quiz.quiz_id,
-            Quiz.creator_uid == uid,
-        )
-    )
-    old_quiz = result.scalar_one_or_none()
-
-    if not old_quiz:
-        raise HTTPException(status_code=404, detail="Quiz not found")
-
     try:
+        uid = request.state.uid
+
+        if not uid:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        result = await db.execute(
+            select(Quiz).where(
+                Quiz.id == quiz.quiz_id,
+                Quiz.creator_uid == uid,
+            )
+        )
+
+        old_quiz = result.scalar_one_or_none()
+
+        if not old_quiz:
+            raise HTTPException(status_code=404, detail="Quiz not found")
+
         old_quiz.quiz_name = quiz.quiz_name
         old_quiz.question_count = quiz.question_count
         old_quiz.quiz_difficulty = quiz.quiz_difficulty
+        old_quiz.quiz_start_time = quiz.quiz_start_time
         old_quiz.quiz_duration = quiz.quiz_duration
         old_quiz.show_leaderboard = quiz.show_leaderboard
 
@@ -83,20 +90,23 @@ async def delete_quiz(
     quiz: QuizDelete,
     db: AsyncSession = Depends(get_db),
 ):
-    uid = request.state.uid
-
-    result = await db.execute(
-        select(Quiz).where(
-            Quiz.id == quiz.quiz_id,
-            Quiz.creator_uid == uid,
-        )
-    )
-    old_quiz = result.scalar_one_or_none()
-
-    if not old_quiz:
-        raise HTTPException(status_code=404, detail="Quiz not found")
-
     try:
+        uid = request.state.uid
+
+        if not uid:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        result = await db.execute(
+            select(Quiz).where(
+                Quiz.id == quiz.quiz_id,
+                Quiz.creator_uid == uid,
+            )
+        )
+        old_quiz = result.scalar_one_or_none()
+
+        if not old_quiz:
+            raise HTTPException(status_code=404, detail="Quiz not found")
+
         await db.delete(old_quiz)
         await db.commit()
         return {"message": "Quiz deleted successfully"}

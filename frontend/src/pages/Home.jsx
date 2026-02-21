@@ -8,8 +8,13 @@ import {
     UsersRound,
     ClipboardPen
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export default function Home() {
+
+    const navigate = useNavigate();
+
     return (
         <div className="
             w-full min-h-screen pt-10
@@ -38,7 +43,9 @@ export default function Home() {
                         px-6 py-3 rounded-xl 
                         text-white font-semibold
                         shadow-sm
-                    ">
+                    "
+                        onClick={() => navigate("/auth")}
+                    >
                         Start for Free
                     </button>
 
@@ -48,7 +55,9 @@ export default function Home() {
                         px-6 py-3 rounded-xl 
                         text-slate-700 dark:text-slate-200
                         font-semibold shadow-sm
-                    ">
+                    "
+                        onClick={() => toast.info("Demo Quiz Coming Soon!")}
+                    >
                         Try Demo Quiz
                     </button>
                 </div>
@@ -93,7 +102,7 @@ export default function Home() {
                     text-center text-slate-500 dark:text-slate-400 
                     mt-2 max-w-2xl mx-auto
                 ">
-                    SquirrelAI gives you powerful tools to streamline learning and assessment.
+                    ZiuQ.AI gives you powerful tools to streamline learning and assessment.
                 </p>
 
                 <div className="
@@ -145,18 +154,10 @@ export default function Home() {
                         px-6 py-3 rounded-xl 
                         text-white font-semibold
                         shadow
-                    ">
+                    "
+                        onClick={() => navigate("/auth")}
+                    >
                         Start for Free
-                    </button>
-
-                    <button className="
-                        bg-white dark:bg-slate-800 
-                        border border-slate-300 dark:border-slate-700 
-                        px-6 py-3 rounded-xl 
-                        text-slate-700 dark:text-slate-200 
-                        font-semibold shadow
-                    ">
-                        Login
                     </button>
                 </div>
             </section>

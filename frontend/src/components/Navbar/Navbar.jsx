@@ -35,7 +35,7 @@ export default function Navbar() {
             "
         >
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleClick()}>
-                <Logo text="SquirrelAI" textSize="text-4xl" iconSize="w-12 h-12" />
+                <Logo text="ZiuQ.AI" textSize="text-4xl" iconSize="w-12 h-12" />
             </div>
 
             <>

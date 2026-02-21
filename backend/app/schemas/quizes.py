@@ -1,11 +1,13 @@
 from pydantic import BaseModel, Field
 from ..models.quizes import Difficulty
+from datetime import datetime
 
 
 class QuizCreate(BaseModel):
     quiz_name: str
     question_count: int
     quiz_difficulty: Difficulty
+    quiz_start_time: datetime
     quiz_duration: int
     show_leaderboard: bool = True
 
@@ -15,6 +17,7 @@ class QuizUpdate(BaseModel):
     quiz_name: str
     question_count: int
     quiz_difficulty: Difficulty
+    quiz_start_time: datetime
     quiz_duration: int
     show_leaderboard: bool
 
@@ -28,6 +31,7 @@ class QuizResponse(BaseModel):
     quiz_name: str
     question_count: int
     quiz_difficulty: Difficulty
+    quiz_start_time: datetime
     quiz_duration: int
     show_leaderboard: bool
 

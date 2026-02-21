@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     DATABASE_URL: str
     ALLOWED_ORIGINS: str
+    GOOGLE_API_KEY: str
 
     @field_validator("ALLOWED_ORIGINS")
     def validate_allowed_origins(cls, value: str) -> List[str]:
@@ -22,6 +23,15 @@ class Settings(BaseSettings):
             raise ValueError("ALLOWED_ORIGINS is required")
         return value.split(",") if value else []
     
+    @field_validator("GOOGLE_API_KEY")
+    def validate_google_api_key(cls, value: str) -> str:
+        """
+        Validate the google api key
+        """
+        if not value:
+            raise ValueError("GOOGLE_API_KEY is required")
+        return value
+
     class Config:
         """
         Config for the settings

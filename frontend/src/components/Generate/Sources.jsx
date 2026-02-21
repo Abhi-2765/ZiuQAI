@@ -9,28 +9,6 @@ export default function Sources() {
         switch (selectedType) {
             case "file":
                 return <FileUpload />;
-            case "text":
-                return (
-                    <div className="h-full flex flex-col">
-                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                            Paste your text here
-                        </label>
-                        <textarea
-                            className="
-                                flex-1 w-full p-4 rounded-xl resize-none
-                                bg-slate-50 dark:bg-slate-900 
-                                border border-slate-200 dark:border-slate-700
-                                focus:ring-2 focus:ring-indigo-500 outline-none
-                                text-slate-800 dark:text-slate-200
-                                placeholder-slate-400
-                            "
-                            placeholder="Paste chapters, notes, or articles..."
-                        ></textarea>
-                        <p className="text-xs text-slate-500 mt-2 text-right">
-                            0 / 5000 characters
-                        </p>
-                    </div>
-                );
             case "link":
                 return (
                     <div className="space-y-4">
@@ -89,15 +67,6 @@ export default function Sources() {
                     active={selectedType === "file"}
                     onClick={() => setSelectedType("file")}
                 />
-
-                <SourceBtn
-                    icon={<Type size={20} />}
-                    text="Paste Text"
-                    desc="Notes, Chapters"
-                    active={selectedType === "text"}
-                    onClick={() => setSelectedType("text")}
-                />
-
                 <SourceBtn
                     icon={<Link2 size={20} />}
                     text="Website Link"
