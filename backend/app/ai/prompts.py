@@ -1,6 +1,6 @@
-from langchain.prompts import SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_core.prompts import SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
-SYSTEM_PROMPT = """
+SYSTEM_PROMPT_TEXT = """
 You are an expert academic quiz generator.
 
 Your role is to generate high-quality, diverse, and non-redundant quiz questions 
@@ -26,9 +26,9 @@ DIVERSITY REQUIREMENTS:
 If constraints cannot be satisfied, return fewer questions rather than violating rules.
 """
 
-SYSTEM_PROMPT = SystemMessagePromptTemplate.from_template(SYSTEM_PROMPT)
+SYSTEM_PROMPT = SystemMessagePromptTemplate.from_template(SYSTEM_PROMPT_TEXT)
 
-GENERATION_PROMPT = """
+GENERATION_PROMPT_TEXT = """
 You are generating NEW questions for a quiz.
 
 Topic: {topic}
@@ -47,22 +47,21 @@ Additional Instructions:
 
 OUTPUT FORMAT:
 
-{
+{{
   "questions": [
-    {
+    {{
       "type": "SCQ | MCQ | FIB | TOF",
       "question": "string",
       "options": ["string"] | null,
       "answer": "string | [string] | boolean"
-    }
+    }}
   ]
-}
+}}
 """
 
-GENERATION_PROMPT = HumanMessagePromptTemplate.from_template(GENERATION_PROMPT)
+GENERATION_PROMPT = HumanMessagePromptTemplate.from_template(GENERATION_PROMPT_TEXT)
 
-
-REGENERATE_PROMPT = """
+REGENERATE_PROMPT_TEXT = """
 You must generate ONE replacement question.
 
 Target Difficulty: {difficulty}
@@ -88,16 +87,62 @@ Requirements:
 
 OUTPUT FORMAT:
 
-{
+{{
   "questions": [
-    {
+    {{
       "type": "{question_type}",
       "question": "string",
       "options": ["string"] | null,
       "answer": "string | [string] | boolean"
-    }
+    }}
   ]
-}
+}}
 """
 
-REGENERATE_PROMPT = HumanMessagePromptTemplate.from_template(REGENERATE_PROMPT)
+REGENERATE_PROMPT = HumanMessagePromptTemplate.from_template(REGENERATE_PROMPT_TEXT)
+
+# --- Agent Specific Prompts ---
+
+AGENT_SYSTEM_PROMPT_TEXT = """
+You are an expert educational content creator.
+Your goal is to generate structured multiple-choice questions (MCQs) that are accurately grounded in the provided context.
+Each question must have exactly 4 options and a clear explanation.
+"""
+
+AGENT_SYSTEM_PROMPT = SystemMessagePromptTemplate.from_template(AGENT_SYSTEM_PROMPT_TEXT)
+
+AGENT_GENERATION_PROMPT_TEXT = """
+Generate {num_questions} multiple choice questions based on the following context:
+
+{context}
+
+Each question must strictly follow this structure:
+{{
+  "id": "unique_string",
+  "question": "text",
+  "options": ["A", "B", "C", "D"],
+  "correct_answer": "exactly one of the options",
+  "explanation": "reasoning"
+}}
+"""
+
+AGENT_GENERATION_PROMPT = HumanMessagePromptTemplate.from_template(AGENT_GENERATION_PROMPT_TEXT)
+
+AGENT_REGENERATE_PROMPT_TEXT = """
+The following questions were rejected. Please generate {num_to_regenerate} NEW questions to replace them.
+
+Retrieved Context:
+{context}
+
+Rejected Question Context/Topics (AVOID THESE):
+{rejected_questions}
+
+Previously Accepted Questions (AVOID DUPLICATING):
+{accepted_questions}
+
+Requirements:
+- Use a slightly different reasoning approach for these new questions.
+- Strictly follow the JSON schema provided earlier.
+"""
+
+AGENT_REGENERATE_PROMPT = HumanMessagePromptTemplate.from_template(AGENT_REGENERATE_PROMPT_TEXT)

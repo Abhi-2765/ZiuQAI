@@ -10,15 +10,15 @@ from .routers.auth import router as auth_router
 from .routers.quizes import router as quizes_router
 from .routers.questions import router as questions_router
 from .routers.user_responses import router as user_responses_router
-from .routers.quiz_sessions import router as quiz_sessions_router
+from .routers.agent import router as agent_router
 
 # DB models
 from .models.users import User
 from .models.quizes import Quiz
-from .models.quiz_sessions import QuizSession
 from .models.participants import Participant
 from .models.user_responses import UserResponse
 from .models.questions import Question
+from .models.documents import Document
 #import future models here so that Base will pick them else we will get errors
 
 app = FastAPI(
@@ -43,7 +43,7 @@ app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(quizes_router, prefix="/quizes", tags=["Quizes"])
 app.include_router(questions_router, prefix="/questions", tags=["Questions"])
 app.include_router(user_responses_router, prefix="/response", tags=["User Responses"])
-app.include_router(quiz_sessions_router, prefix="/session", tags=["Quiz Sessions"])
+app.include_router(agent_router, prefix="/agent", tags=["AI Agent"])
 
 # Events
 @app.on_event("startup")

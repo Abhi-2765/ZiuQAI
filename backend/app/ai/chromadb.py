@@ -1,9 +1,7 @@
 # chromadb.py
 
 from langchain_chroma import Chroma
-from app.ai.llm import LLM 
-
-embeddings = LLM.get_embedding_model()
+from app.ai.llm import embeddings 
 
 vector_store = Chroma(
     collection_name="ZiuQAI",
