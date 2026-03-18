@@ -24,5 +24,6 @@ class UserResponse(Base):
         nullable=False,
     )
 
+    #user: Mapped["User"] = relationship("User", back_populates="user_responses")
     participant: Mapped["Participant"] = relationship("Participant", back_populates="user_responses")
     question: Mapped["Question"] = relationship("Question", back_populates="user_responses")

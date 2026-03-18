@@ -5,7 +5,6 @@ from pydantic import field_validator
 class Settings(BaseSettings):
     """
         Settings for this application has the environment variables used in the application.
-        
         Note: If env files change this need to change
     """
     API_PREFIX: str = "/api"

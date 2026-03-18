@@ -44,14 +44,8 @@ class Quiz(Base):
         back_populates="quizzes",
     )
 
-    user_responses: Mapped[List["UserResponse"]] = relationship(
-        "UserResponse",
-        back_populates="quiz",
-        cascade="all, delete-orphan",
-    )
-
-    # quiz_sessions: Mapped[List["QuizSession"]] = relationship(
-    #     "QuizSession",
+    # user_responses: Mapped[List["UserResponse"]] = relationship(
+    #     "UserResponse",
     #     back_populates="quiz",
     #     cascade="all, delete-orphan",
     # )

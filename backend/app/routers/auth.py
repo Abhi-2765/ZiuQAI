@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from fastapi import Depends, HTTPException, status, APIRouter, Response
+from fastapi import Depends, HTTPException, status, APIRouter, Response, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
@@ -9,6 +9,7 @@ from ..utils.auth_handler import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     create_access_token,
     get_user,
+    get_user_by_uid,
     get_password_hash,
     get_current_active_user,
 )
@@ -78,9 +79,25 @@ async def login(
         secure=False,  # True in production
     )
 
-    return {"message": "Login successful"}
+    return {
+        "message": "Login successful",
+        "email": user_obj.email,
+        "username": user_obj.username
+    }
 
+@router.post("/logout")
+async def logout(response: Response, db: AsyncSession = Depends(get_db)):
+    response.delete_cookie("access_token")
+    return {"message": "Logout successful"}
 
 @router.get("/me", response_model=UserResponse)
-async def read_users_me(current_user=Depends(get_current_active_user)):
-    return current_user
+async def read_users_me(request: Request, db: AsyncSession = Depends(get_db)):
+    uid = request.state.uid
+    if not uid:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    user = await get_user_by_uid(db, uid)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return user

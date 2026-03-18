@@ -22,20 +22,10 @@ class User(Base):
         nullable=False,
     )
 
-    user_responses: Mapped[List["UserResponse"]] = relationship(
-        "UserResponse",
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
+
 
     participants: Mapped[List["Participant"]] = relationship(
         "Participant",
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
-
-    quiz_sessions: Mapped[List["QuizSession"]] = relationship(
-        "QuizSession",
         back_populates="user",
         cascade="all, delete-orphan",
     )

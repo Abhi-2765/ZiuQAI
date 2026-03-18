@@ -57,6 +57,7 @@ db.env
 
 # Local Docker artifacts
 docker-compose.override.yml
+docker/docker-compose.yml
 
 # ============================
 # OS files

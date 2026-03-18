@@ -1,9 +1,11 @@
 import { useForm } from "react-hook-form";
-import axios from "axios";
+import api from "../../utils/api";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthProvider";
 
 export default function AuthForm({ isLogin }) {
+    const { setEmail, setName } = useAuth();
     const {
         register,
         handleSubmit,
@@ -14,19 +16,19 @@ export default function AuthForm({ isLogin }) {
 
     const onSubmit = async (data) => {
         try {
-            const backend_url =
-                import.meta.env.VITE_BACKEND_URL +
-                (isLogin ? "/auth/login" : "/auth/register");
+            const endpoint = isLogin ? "/auth/login" : "/auth/register";
 
-            const response = await axios.post(backend_url, data);
-            if (isLogin) {
-                toast.success(response.data.message);
+            const response = await api.post(endpoint, data);
+            if (isLogin && response) {
+                setEmail(response.data.email);
+                setName(response.data.username);
+                toast.success("Login successful");
                 navigate("/dashboard");
             }
             else {
-                toast.success(response.data.message);
+                toast.success("User registered successfully")
                 toast.info("Please login to continue");
-                navigate("/login");
+                navigate("/auth", { state: { isLogin: true } });
             }
         } catch (error) {
             toast.error(error?.response?.data?.detail || "Something went wrong");

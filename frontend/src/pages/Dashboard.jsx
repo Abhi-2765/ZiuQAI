@@ -85,8 +85,8 @@ const Dashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
-                {features.map(feature => (
-                    <RouteChip key={feature.key} {...feature} />
+                {features.map(({ key, ...featureProps }) => (
+                    <RouteChip key={key} {...featureProps} />
                 ))}
             </div>
 

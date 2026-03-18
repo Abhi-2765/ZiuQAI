@@ -9,6 +9,7 @@ import GenerateQuiz from "./pages/GenerateQuiz"
 import Home from "./pages/Home"
 import Arena from "./pages/Arena"
 import Standings from "./pages/Standings"
+import Profile from "./pages/Profile"
 
 import { ToastContainer, Bounce } from "react-toastify";
 import { useTheme } from "./context/ThemeProvider"
@@ -43,7 +44,7 @@ const App = () => {
           <Route path="/generate" element={<GenerateQuiz />} />
           <Route path="/host" element={<></>} />
           <Route path="/attempt" element={<></>} />
-          <Route path="/profile" element={<></>} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/arena" element={<Arena />} />
           <Route path="/standings" element={<Standings />} />
         </Route>

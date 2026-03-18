@@ -1,14 +1,25 @@
 import { useState, useEffect } from "react";
 import AuthForm from "../components/Auth/AuthForm";
+import { useAuth } from "../context/AuthProvider";
 import Others from "../components/Auth/Others";
 import loginArt from "../assets/loginArt.png";
+import { Navigate } from "react-router-dom";
 
 export default function AuthenticatePage() {
+    const { email } = useAuth();
     const [isLogin, setIsLogin] = useState(false);
 
     useEffect(() => {
-        document.title = "ZiuQ.AI - Authenticate";
-    }, []);
+        if (isLogin) {
+            document.title = "ZiuQ.AI | Login";
+        } else {
+            document.title = "ZiuQ.AI | Sign Up";
+        }
+    }, [isLogin]);
+
+    if (email) {
+        return <Navigate to="/dashboard" />
+    }
 
     return (
         <div className="w-full min-h-screen grid grid-cols-1 md:grid-cols-2 overflow-x-hidden font-jockey">
