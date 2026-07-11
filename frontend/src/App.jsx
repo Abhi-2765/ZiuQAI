@@ -10,6 +10,8 @@ import Home from "./pages/Home"
 import Arena from "./pages/Arena"
 import Standings from "./pages/Standings"
 import Profile from "./pages/Profile"
+import Host from "./pages/Host"
+import Attempt from "./pages/Attempt"
 
 import { ToastContainer, Bounce } from "react-toastify";
 import { useTheme } from "./context/ThemeProvider"
@@ -19,7 +21,7 @@ const App = () => {
   const { theme } = useTheme()
   return (
     <>
-      {location.pathname !== "/arena" && <Navbar />}
+      {!location.pathname.startsWith("/arena") && <Navbar />}
 
       <ToastContainer
         position="bottom-right"
@@ -42,11 +44,11 @@ const App = () => {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/generate" element={<GenerateQuiz />} />
-          <Route path="/host" element={<></>} />
-          <Route path="/attempt" element={<></>} />
+          <Route path="/host" element={<Host />} />
+          <Route path="/attempt" element={<Attempt />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/arena" element={<Arena />} />
-          <Route path="/standings" element={<Standings />} />
+          <Route path="/arena/:quizId" element={<Arena />} />
+          <Route path="/standings/:quizId" element={<Standings />} />
         </Route>
       </Routes>
       {location.pathname === "/" && <Footer />}

@@ -1,3 +1,4 @@
+# backend/app/utils/auth_middleware.py
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi import Request
@@ -10,7 +11,8 @@ from ..db.base import AsyncSessionLocal
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if (
-            request.url.path.startswith("/auth/register")
+            request.method == "OPTIONS"
+            or request.url.path.startswith("/auth/register")
             or request.url.path == "/"
             or request.url.path.startswith("/auth/login")
             or request.url.path.startswith("/docs")
@@ -19,6 +21,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         auth_token = request.cookies.get("access_token")
+        print(f"[DEBUG MIDDLEWARE] Method: {request.method}, Path: {request.url.path}, Cookies: {request.cookies}")
         if not auth_token:
             return JSONResponse(
                 status_code=401,

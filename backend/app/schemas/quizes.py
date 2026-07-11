@@ -1,3 +1,4 @@
+# backend/app/schemas/quizes.py
 from pydantic import BaseModel, Field
 from ..models.quizes import Difficulty
 from datetime import datetime
@@ -10,6 +11,7 @@ class QuizCreate(BaseModel):
     quiz_start_time: datetime
     quiz_duration: int
     show_leaderboard: bool = True
+    status: str = "draft"
 
 
 class QuizUpdate(BaseModel):
@@ -20,6 +22,7 @@ class QuizUpdate(BaseModel):
     quiz_start_time: datetime
     quiz_duration: int
     show_leaderboard: bool
+    status: str
 
 
 class QuizDelete(BaseModel):
@@ -34,6 +37,7 @@ class QuizResponse(BaseModel):
     quiz_start_time: datetime
     quiz_duration: int
     show_leaderboard: bool
+    status: str
 
     class Config:
         from_attributes = True

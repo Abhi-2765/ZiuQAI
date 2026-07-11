@@ -1,3 +1,4 @@
+# backend/app/schemas/user_responses.py
 from pydantic import BaseModel
 
 class UserResponseCreate(BaseModel):

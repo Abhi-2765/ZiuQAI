@@ -1,0 +1,33 @@
+# backend/app/graph/nodes/generate_questions.py
+import json
+import re
+from app.graph.state import QuizGraphState
+from app.services.core.factory import get_llm_service
+from app.services.llm.prompts import QUIZ_GENERATION_PROMPT
+
+async def generate_questions(state: QuizGraphState) -> dict:
+    attempt = state.get("attempt", 0) + 1
+    llm_service = get_llm_service()
+    
+    prompt = QUIZ_GENERATION_PROMPT.format(
+        context=state.get("context", ""),
+        question_count=state.get("question_count", 5),
+        difficulty=state.get("difficulty", "MEDIUM"),
+        question_types=", ".join(state.get("question_types", ["mcq"]))
+    )
+    
+    try:
+        response_text = await llm_service.generate(prompt)
+        
+        # Clean response text in case LLM wraps it in markdown code blocks
+        clean_text = response_text.strip()
+        clean_text = re.sub(r"```(?:json)?", "", clean_text).strip()
+            
+        questions = json.loads(clean_text)
+        if not isinstance(questions, list):
+            raise ValueError("LLM response is not a JSON list")
+            
+        return {"questions": questions, "attempt": attempt}
+    except Exception as e:
+        print(f"Error generating questions: {e}")
+        return {"questions": [], "attempt": attempt}

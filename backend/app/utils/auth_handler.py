@@ -1,3 +1,4 @@
+# backend/app/utils/auth_handler.py
 import os
 import jwt
 from jwt import PyJWTError

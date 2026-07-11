@@ -1,33 +1,23 @@
-import { useEffect, useState } from "react";
-import { Settings, Clock, Hash, Layers, CheckSquare, ListChecks } from "lucide-react";
+import { Settings, Clock, Hash, Layers, CheckSquare, ListChecks, Type } from "lucide-react";
 
-/*
-    TODO: Add tags data
-    TODO: Make difficulty and question types functional
-    TODO: Make Question count better
-*/
-
-export default function ConfigureQuiz() {
-
-    const marks = Array.from({ length: 10 }, (_, i) => 5 + i * 5)
-    const [difficulty, setDifficulty] = useState("Easy")
-    const [questionType, setQuestionType] = useState([])
-    const [live, setLive] = useState(false)
-    const [leaderboard, setLeaderboard] = useState(false)
+export default function ConfigureQuiz({ config, setConfig }) {
+    const marks = Array.from({ length: 10 }, (_, i) => 5 + i * 5);
 
     const QUESTION_TYPES = [
         { label: "Single correct (SCQ)", value: "scq" },
         { label: "Multiple correct (MCQ)", value: "mcq" },
-        { label: "True / False", value: "tfq" },
-        { label: "Fill in the Blanks", value: "fib" },
-    ]
+        { label: "True / False (TOF)", value: "tof" },
+        { label: "Fill in the Blanks (FIB)", value: "fib" },
+    ];
+
     const toggleQuestionType = (type) => {
-        setQuestionType((prev) =>
-            prev.includes(type)
-                ? prev.filter((t) => t !== type)
-                : [...prev, type]
-        )
-    }
+        setConfig((prev) => {
+            const types = prev.question_types.includes(type)
+                ? prev.question_types.filter((t) => t !== type)
+                : [...prev.question_types, type];
+            return { ...prev, question_types: types };
+        });
+    };
 
     return (
         <div className="flex flex-col gap-8">
@@ -43,10 +33,30 @@ export default function ConfigureQuiz() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
+                {/* Quiz Name */}
+                <div className="space-y-3 md:col-span-2">
+                    <label className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                        <Type size={16} /> Quiz Title
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="E.g., Midterm Machine Learning Quiz"
+                        value={config.quiz_name}
+                        onChange={(e) => setConfig({ ...config, quiz_name: e.target.value })}
+                        className="
+                            w-full p-3 rounded-xl 
+                            bg-slate-50 dark:bg-slate-900 
+                            border border-slate-200 dark:border-slate-700
+                            text-slate-800 dark:text-slate-200
+                            focus:ring-2 focus:ring-indigo-500 outline-none
+                        "
+                    />
+                </div>
+
                 {/* Question Count */}
                 <div className="space-y-3">
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
-                        <Hash size={16} /> Number of Questions
+                        <Hash size={16} /> Number of Questions ({config.question_count})
                     </label>
 
                     <div className="flex flex-col w-full">
@@ -55,73 +65,83 @@ export default function ConfigureQuiz() {
                             min="5"
                             max="50"
                             step="5"
-                            defaultValue="10"
+                            value={config.question_count}
+                            onChange={(e) => setConfig({ ...config, question_count: parseInt(e.target.value) })}
                             className="
-                        w-full h-2 appearance-none rounded-lg cursor-pointer
-                        bg-slate-200 dark:bg-slate-700
-                        accent-indigo-600
-                        "
+                                w-full h-2 appearance-none rounded-lg cursor-pointer
+                                bg-slate-200 dark:bg-slate-700
+                                accent-indigo-600
+                            "
                         />
 
-                        <div className="mt-4 z-50 w-full flex justify-between text-xs text-slate-500 font-medium">
+                        <div className="mt-4 z-10 w-full flex justify-between text-xs text-slate-500 font-medium">
                             {marks.map((mark) => (
                                 <span key={mark}>{mark}</span>
                             ))}
                         </div>
                     </div>
                 </div>
+
                 {/* Difficulty Settings */}
                 <div className="space-y-3">
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
                         <Layers size={16} /> Difficulty Level
                     </label>
                     <div className="flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700/50">
-                        {['Easy', 'Medium', 'Hard'].map((level, idx) => (
+                        {['EASY', 'MEDIUM', 'HARD'].map((level) => (
                             <button
                                 key={level}
                                 className={`
                                     flex-1 py-2 rounded-lg text-sm font-bold transition-all
-                                    ${level === difficulty
+                                    ${level === config.quiz_difficulty
                                         ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
                                         : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}
                                 `}
-                                onClick={() => setDifficulty(level)}
+                                onClick={() => setConfig({ ...config, quiz_difficulty: level })}
                             >
-                                {level}
+                                {level.charAt(0) + level.slice(1).toLowerCase()}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                {/* Time Limit */}
-                <div className="space-y-3">
-                    <label className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
-                        <Clock size={16} /> Time Limit of Exam(in Minutes)
-                    </label>
-                    <input
-                        type="number"
-                        className="
-                        w-full p-3 rounded-xl 
-                        bg-slate-50 dark:bg-slate-900 
-                        border border-slate-200 dark:border-slate-700
-                        text-slate-800 dark:text-slate-200
-                        focus:ring-2 focus:ring-indigo-500 outline-none
-                        appearance-none
-                        "
-                    />
-                    <label className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
-                        <Clock size={16} /> Start time of Exam(in 24Hr format)
-                    </label>
-                    <input
-                        type="time"
-                        className="
-                        w-full p-3 rounded-xl 
-                        bg-slate-50 dark:bg-slate-900 
-                        border border-slate-200 dark:border-slate-700
-                        text-slate-800 dark:text-slate-200
-                        focus:ring-2 focus:ring-indigo-500 outline-none
-                        appearance-none"
-                    />
+                {/* Time Limit & Start Time */}
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                            <Clock size={16} /> Quiz Duration (Minutes)
+                        </label>
+                        <input
+                            type="number"
+                            min="1"
+                            value={config.quiz_duration}
+                            onChange={(e) => setConfig({ ...config, quiz_duration: parseInt(e.target.value) || 0 })}
+                            className="
+                                w-full p-3 rounded-xl 
+                                bg-slate-50 dark:bg-slate-900 
+                                border border-slate-200 dark:border-slate-700
+                                text-slate-800 dark:text-slate-200
+                                focus:ring-2 focus:ring-indigo-500 outline-none
+                            "
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                            <Clock size={16} /> Start Date & Time
+                        </label>
+                        <input
+                            type="datetime-local"
+                            value={config.quiz_start_time}
+                            onChange={(e) => setConfig({ ...config, quiz_start_time: e.target.value })}
+                            className="
+                                w-full p-3 rounded-xl 
+                                bg-slate-50 dark:bg-slate-900 
+                                border border-slate-200 dark:border-slate-700
+                                text-slate-800 dark:text-slate-200
+                                focus:ring-2 focus:ring-indigo-500 outline-none
+                            "
+                        />
+                    </div>
                 </div>
 
                 {/* Question Types */}
@@ -135,29 +155,21 @@ export default function ConfigureQuiz() {
                             <ToggleOption
                                 key={value}
                                 label={label}
-                                active={questionType.includes(value)}
+                                active={config.question_types.includes(value)}
                                 onClick={() => toggleQuestionType(value)}
                             />
                         ))}
                     </div>
                 </div>
-
-
             </div>
 
             {/* Extra Options */}
             <div className="pt-6 border-t border-slate-200 dark:border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <ToggleSwitch
-                    label="Host Live Quiz"
-                    desc="Start a real-time session for others to join"
-                    item={live}
-                    setItem={setLive}
-                />
-                <ToggleSwitch
                     label="Show Leaderboard"
-                    desc="Display rankings after each question"
-                    item={leaderboard}
-                    setItem={setLeaderboard}
+                    desc="Display user rankings after the quiz has ended"
+                    item={config.show_leaderboard}
+                    setItem={(val) => setConfig({ ...config, show_leaderboard: val })}
                 />
             </div>
         </div>
@@ -169,28 +181,27 @@ function ToggleOption({ label, active, onClick }) {
         <div
             onClick={onClick}
             className={`
-        flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all
-        ${active
+                flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all
+                ${active
                     ? "bg-indigo-50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300"
                     : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}
-      `}
+            `}
         >
             <span className="text-sm font-semibold">{label}</span>
 
             <div
                 className={`
-          w-5 h-5 rounded flex items-center justify-center border
-          ${active
+                    w-5 h-5 rounded flex items-center justify-center border
+                    ${active
                         ? "bg-indigo-600 border-indigo-600 text-white"
                         : "border-slate-300 dark:border-slate-600"}
-        `}
+                `}
             >
                 {active && <CheckSquare size={14} />}
             </div>
         </div>
-    )
+    );
 }
-
 
 function ToggleSwitch({ label, desc, item, setItem }) {
     return (
@@ -199,17 +210,20 @@ function ToggleSwitch({ label, desc, item, setItem }) {
                 <p className="font-bold text-slate-800 dark:text-slate-200">{label}</p>
                 <p className="text-xs text-slate-500">{desc}</p>
             </div>
-            <div className={`
-                w-12 h-6 rounded-full p-1 transition-colors duration-300 cursor-pointer
-                ${item ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"}
-            `}
-                onClick={() => setItem((prev) => !prev)}
+            <div
+                className={`
+                    w-12 h-6 rounded-full p-1 transition-colors duration-300 cursor-pointer
+                    ${item ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"}
+                `}
+                onClick={() => setItem(!item)}
             >
-                <div className={`
-                    w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300
-                    ${item ? "translate-x-6" : "translate-x-0"}
-                `}></div>
+                <div
+                    className={`
+                        w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300
+                        ${item ? "translate-x-6" : "translate-x-0"}
+                    `}
+                ></div>
             </div>
         </div>
-    )
+    );
 }

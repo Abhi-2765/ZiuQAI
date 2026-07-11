@@ -1,5 +1,7 @@
+# backend/app/models/quizes.py
+from __future__ import annotations
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from enum import Enum
 
 from sqlalchemy import String, DateTime, func, ForeignKey, Enum as SQLEnum, Boolean, Integer
@@ -7,6 +9,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .users import User
 from ..db.base import Base
+
+if TYPE_CHECKING:
+    from .participants import Participant
+    from .questions import Question
+    from .chat_session import ChatSession
 
 
 class Difficulty(str, Enum):
@@ -32,6 +39,7 @@ class Quiz(Base):
     quiz_duration: Mapped[int] = mapped_column(Integer, nullable=False)
 
     show_leaderboard: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    status: Mapped[str] = mapped_column(String, default="draft", nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -39,8 +47,8 @@ class Quiz(Base):
         nullable=False,
     )
 
-    creator: Mapped["User"] = relationship(
-        "User",
+    creator: Mapped[User] = relationship(
+        User,
         back_populates="quizzes",
     )
 
@@ -50,14 +58,19 @@ class Quiz(Base):
     #     cascade="all, delete-orphan",
     # )
 
-    participants: Mapped[List["Participant"]] = relationship(
+    participants: Mapped[List[Participant]] = relationship(
         "Participant",
         back_populates="quiz",
         cascade="all, delete-orphan",
     )
 
-    questions: Mapped[List["Question"]] = relationship(
+    questions: Mapped[List[Question]] = relationship(
          "Question",
+         back_populates="quiz",
+         cascade="all, delete-orphan",
+    )
+    chat_sessions: Mapped[List[ChatSession]] = relationship(
+         "ChatSession",
          back_populates="quiz",
          cascade="all, delete-orphan",
     )

@@ -6,6 +6,7 @@ export const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
     const [email, setEmail] = useState(null);
     const [name, setName] = useState(null);
+    const [userCode, setUserCode] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const fetchUser = async () => {
@@ -13,9 +14,11 @@ const AuthProvider = ({ children }) => {
             const res = await api.get("/auth/me");
             setEmail(res.data.email);
             setName(res.data.username);
+            setUserCode(res.data.user_code);
         } catch {
             setEmail(null);
             setName(null);
+            setUserCode(null);
         } finally {
             setLoading(false);
         }
@@ -26,7 +29,7 @@ const AuthProvider = ({ children }) => {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ email, name, loading, setEmail, setName, fetchUser }}>
+        <AuthContext.Provider value={{ email, name, userCode, loading, setEmail, setName, setUserCode, fetchUser }}>
             {children}
         </AuthContext.Provider>
     );

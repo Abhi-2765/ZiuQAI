@@ -1,14 +1,25 @@
 import { useState } from "react";
-import { Link2, FileUp, Type, Globe, CheckCircle2 } from "lucide-react";
+import { Link2, FileUp, Globe, CheckCircle2 } from "lucide-react";
 import FileUpload from "./FileUpload";
 
-export default function Sources() {
+export default function Sources({ quizId, files, setFiles, urls, setUrls }) {
     const [selectedType, setSelectedType] = useState("file");
+    const [urlInput, setUrlInput] = useState("");
+
+    const handleAddUrl = () => {
+        if (!urlInput.trim()) return;
+        setUrls(prev => [...prev, urlInput.trim()]);
+        setUrlInput("");
+    };
+
+    const handleRemoveUrl = (urlToRemove) => {
+        setUrls(prev => prev.filter(url => url !== urlToRemove));
+    };
 
     const renderInputArea = () => {
         switch (selectedType) {
             case "file":
-                return <FileUpload />;
+                return <FileUpload quizId={quizId} files={files} setFiles={setFiles} />;
             case "link":
                 return (
                     <div className="space-y-4">
@@ -18,6 +29,8 @@ export default function Sources() {
                         <div className="flex gap-2">
                             <input
                                 type="url"
+                                value={urlInput}
+                                onChange={(e) => setUrlInput(e.target.value)}
                                 placeholder="https://example.com/article"
                                 className="
                                     flex-1 p-3 rounded-xl 
@@ -27,26 +40,34 @@ export default function Sources() {
                                     text-slate-800 dark:text-slate-200
                                 "
                             />
-                            <button className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold rounded-xl hover:opacity-90 transition">
+                            <button 
+                                onClick={handleAddUrl}
+                                className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold rounded-xl hover:opacity-90 transition"
+                            >
                                 Add
                             </button>
                         </div>
 
                         <div className="mt-6">
                             <p className="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-3">Added Links</p>
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50 flex items-center justify-between group">
-                                <div className="flex items-center gap-3 overflow-hidden">
-                                    <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                                        <Globe size={16} />
+                            {urls.length === 0 && (
+                                <p className="text-sm text-slate-500 dark:text-slate-400">No links added yet.</p>
+                            )}
+                            {urls.map((url, idx) => (
+                                <div key={idx} className="p-4 mb-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50 flex items-center justify-between group">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                            <Globe size={16} />
+                                        </div>
+                                        <span className="text-sm text-slate-600 dark:text-slate-300 truncate">
+                                            {url}
+                                        </span>
                                     </div>
-                                    <span className="text-sm text-slate-600 dark:text-slate-300 truncate">
-                                        https://wikipedia.org/wiki/Artificial_intelligence
-                                    </span>
+                                    <button onClick={() => handleRemoveUrl(url)} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition">
+                                        Remove
+                                    </button>
                                 </div>
-                                <button className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition">
-                                    Remove
-                                </button>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 );
@@ -113,4 +134,3 @@ function SourceBtn({ icon, text, desc, active, onClick }) {
         </button>
     );
 }
-

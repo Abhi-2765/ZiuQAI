@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import { UploadCloud, File, X, Check } from "lucide-react";
+import api from "../../utils/api";
 
-export default function FileUpload() {
-    const [files, setFiles] = useState([]);
+export default function FileUpload({ quizId, files, setFiles }) {
     const [dragActive, setDragActive] = useState(false);
     const [uploading, setUploading] = useState(false);
     const inputRef = useRef(null);
@@ -49,37 +49,43 @@ export default function FileUpload() {
         setFiles((prev) => prev.filter((f) => f.id !== id));
     };
 
-    const handleUpload = () => {
+    const handleUpload = async () => {
         if (files.length === 0 || uploading) return;
         setUploading(true);
 
-        const uploadFile = (fileId) =>
-            new Promise((resolve) => {
-                let progress = 0;
-                const interval = setInterval(() => {
-                    progress += Math.random() * 30;
-                    if (progress >= 100) progress = 100;
+        const uploadFile = async (fileObj) => {
+            const formData = new FormData();
+            formData.append("file", fileObj.file);
 
-                    setFiles((prev) =>
-                        prev.map((f) =>
-                            f.id === fileId ? { ...f, progress } : f
-                        )
-                    );
+            try {
+                await api.post(`/ingest/upload?quiz_id=${quizId}`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                    onUploadProgress: (progressEvent) => {
+                        if (progressEvent.total) {
+                            const percentCompleted = Math.round(
+                                (progressEvent.loaded * 100) / progressEvent.total
+                            );
+                            setFiles((prev) =>
+                                prev.map((f) =>
+                                    f.id === fileObj.id ? { ...f, progress: percentCompleted } : f
+                                )
+                            );
+                        }
+                    },
+                });
 
-                    if (progress === 100) {
-                        clearInterval(interval);
-                        setFiles((prev) =>
-                            prev.map((f) =>
-                                f.id === fileId ? { ...f, uploaded: true } : f
-                            )
-                        );
-                        resolve();
-                    }
-                }, 400);
-            });
+                setFiles((prev) =>
+                    prev.map((f) =>
+                        f.id === fileObj.id ? { ...f, uploaded: true, progress: 100 } : f
+                    )
+                );
+            } catch (error) {
+                console.error("Upload failed for file:", fileObj.name, error);
+            }
+        };
 
-        Promise.all(files.filter(f => !f.uploaded).map(f => uploadFile(f.id)))
-            .then(() => setUploading(false));
+        await Promise.all(files.filter(f => !f.uploaded).map(f => uploadFile(f)));
+        setUploading(false);
     };
 
     return (

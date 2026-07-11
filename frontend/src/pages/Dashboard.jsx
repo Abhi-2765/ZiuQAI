@@ -1,10 +1,10 @@
-import { useState } from "react";
 import GeneralChip from "../components/Dashboard/GeneralChip";
 import RouteChip from "../components/Dashboard/RouteChip";
 import ActivityChip from "../components/Dashboard/ActivityChip";
+import { useAuth } from "../context/AuthProvider";
 
 const Dashboard = () => {
-    const [name] = useState("Alex");
+    const { name } = useAuth();
 
     const generalHistory = [
         { label: "Quizzes Attempted", count: 12 },

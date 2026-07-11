@@ -1,4 +1,4 @@
-# schemas/auth.py
+# backend/app/schemas/auth.py
 from pydantic import BaseModel
 
 class UserCreate(BaseModel):
@@ -13,6 +13,7 @@ class UserLogin(BaseModel):
 class UserResponse(BaseModel):
     username: str
     email: str | None = None
+    user_code: str | None = None
 
 class UserInDB(UserResponse):
     hashed_password: str

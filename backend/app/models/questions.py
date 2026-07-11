@@ -1,11 +1,17 @@
+# backend/app/models/questions.py
+from __future__ import annotations
 from datetime import datetime
-from typing import List
+from typing import List, Optional, TYPE_CHECKING
 import enum
 
-from sqlalchemy import String, Enum as SQLEnum, ForeignKey, DateTime, func, Integer
+from sqlalchemy import String, Enum as SQLEnum, ForeignKey, DateTime, func, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db.base import Base
+
+if TYPE_CHECKING:
+    from .quizes import Quiz
+    from .user_responses import UserResponse
 
 
 class QuestionType(str, enum.Enum):
@@ -28,6 +34,7 @@ class Question(Base):
         nullable=False,
     )
     correct_answer: Mapped[str] = mapped_column(String, nullable=False)
+    options: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -35,8 +42,8 @@ class Question(Base):
         nullable=False,
     )
 
-    quiz: Mapped["Quiz"] = relationship("Quiz", back_populates="questions")
-    user_responses: Mapped[List["UserResponse"]] = relationship(
+    quiz: Mapped[Quiz] = relationship("Quiz", back_populates="questions")
+    user_responses: Mapped[List[UserResponse]] = relationship(
         "UserResponse",
         back_populates="question",
         cascade="all, delete-orphan",

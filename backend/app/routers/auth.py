@@ -1,8 +1,11 @@
+# backend/app/routers/auth.py
 from datetime import timedelta
 
 from fastapi import Depends, HTTPException, status, APIRouter, Response, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
+import string
+import random
 
 from ..utils.auth_handler import (
     authenticate_user,
@@ -29,19 +32,21 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     try:
         hashed_password = get_password_hash(user.password)
         uid = uuid.uuid4()
+        user_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
 
         db_user = User(
             uid=str(uid),
             username=user.username,
             email=user.email,
             hashed_password=hashed_password,
+            user_code=user_code,
         )
 
         db.add(db_user)
         await db.commit()
         await db.refresh(db_user)
 
-        return {"message": "User registered successfully, login to continue"}
+        return {"message": "User registered successfully, login to continue", "user_code": user_code}
 
     except Exception as e:
         await db.rollback()

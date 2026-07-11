@@ -1,3 +1,4 @@
+# backend/app/schemas/questions.py
 from pydantic import BaseModel, Field
 from ..models.questions import QuestionType
 
@@ -6,12 +7,14 @@ class QuestionCreate(BaseModel):
     question: str
     question_type: QuestionType
     correct_answer: str
+    options: list[str] | None = None
 
 class QuestionUpdate(BaseModel):
     question_id: int
     question: str
     question_type: QuestionType
     correct_answer: str
+    options: list[str] | None = None
 
 class QuestionDelete(BaseModel):
     question_id: int
@@ -22,6 +25,7 @@ class QuestionResponse(BaseModel):
     question: str
     question_type: QuestionType
     correct_answer: str
+    options: list[str] | None = None
 
     class Config:
         from_attributes = True

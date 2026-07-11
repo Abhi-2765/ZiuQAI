@@ -26,4 +26,5 @@ dependencies = [
     "langchain-chroma>=1.1.0",
     "unstructured>=0.20.8",
     "langgraph-checkpoint-postgres>=3.0.4",
+    "langchain-postgres>=0.0.17",
 ]

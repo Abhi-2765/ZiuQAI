@@ -1,3 +1,4 @@
+# backend/app/schemas/participants.py
 from pydantic import BaseModel
 
 class ParticipantCreate(BaseModel):

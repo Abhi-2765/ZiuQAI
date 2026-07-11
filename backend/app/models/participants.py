@@ -1,10 +1,17 @@
+# backend/app/models/participants.py
+from __future__ import annotations
 from datetime import datetime
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from sqlalchemy import Integer, Float, String, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db.base import Base
+
+if TYPE_CHECKING:
+    from .quizes import Quiz
+    from .users import User
+    from .user_responses import UserResponse
 
 
 class Participant(Base):
@@ -23,9 +30,9 @@ class Participant(Base):
         nullable=False,
     )
 
-    quiz: Mapped["Quiz"] = relationship("Quiz", back_populates="participants")
-    user: Mapped["User"] = relationship("User", back_populates="participants")
-    user_responses: Mapped[List["UserResponse"]] = relationship(
+    quiz: Mapped[Quiz] = relationship("Quiz", back_populates="participants")
+    user: Mapped[User] = relationship("User", back_populates="participants")
+    user_responses: Mapped[List[UserResponse]] = relationship(
         "UserResponse",
         back_populates="participant",
         cascade="all, delete-orphan",

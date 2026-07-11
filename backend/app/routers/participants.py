@@ -1,3 +1,4 @@
+# backend/app/routers/participants.py
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select

@@ -9,9 +9,9 @@ const ProtectedRoute = () => {
     }
 
     if (email) {
-        return <Outlet />; // render nested routes
+        return <Outlet />;
     } else {
-        return <Navigate to="/auth" />; // redirect to login
+        return <Navigate to="/auth" />;
     }
 };
 
