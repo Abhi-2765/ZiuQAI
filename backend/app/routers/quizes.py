@@ -8,7 +8,7 @@ from typing import List
 from ..schemas.quizes import QuizCreate, QuizUpdate, QuizResponse, QuizDelete
 from ..models.quizes import Quiz
 from ..models.participants import Participant
-from ..models.questions import Question
+from ..models.questions import Question, QuestionType
 from ..models.user_responses import UserResponse as UserResponseModel
 from ..db.base import get_db
 
@@ -22,7 +22,8 @@ async def create_quiz(request: Request, quiz: QuizCreate, db: AsyncSession = Dep
         quiz_name=quiz.quiz_name, question_count=quiz.question_count,
         quiz_difficulty=quiz.quiz_difficulty, quiz_start_time=quiz.quiz_start_time,
         quiz_duration=quiz.quiz_duration, show_leaderboard=quiz.show_leaderboard,
-        status="draft", creator_uid=uid
+        status="draft", creator_uid=uid,
+        question_types=quiz.question_types
     )
     db.add(new_quiz)
     await db.commit()
@@ -44,6 +45,8 @@ async def update_quiz(request: Request, quiz: QuizUpdate, db: AsyncSession = Dep
     old_quiz.quiz_duration = quiz.quiz_duration
     old_quiz.show_leaderboard = quiz.show_leaderboard
     old_quiz.status = quiz.status
+    if quiz.question_types is not None:
+        old_quiz.question_types = quiz.question_types
     
     await db.commit()
     await db.refresh(old_quiz)
@@ -67,6 +70,38 @@ async def get_my_quizzes(request: Request, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Quiz).where(Quiz.creator_uid == uid).order_by(Quiz.created_at.desc()))
     return result.scalars().all()
 
+@router.get("/my-drafts")
+async def get_my_drafts(request: Request, db: AsyncSession = Depends(get_db)):
+    """Return draft quizzes for the current user with resource count."""
+    uid = getattr(request.state, "uid", None)
+    if not uid: raise HTTPException(status_code=401, detail="Unauthorized")
+    result = await db.execute(
+        select(Quiz).where(Quiz.creator_uid == uid, Quiz.status == "draft")
+        .order_by(Quiz.created_at.desc())
+    )
+    drafts = result.scalars().all()
+    
+    from ..models.quiz_resource import QuizResource
+    from sqlalchemy import func as sqlfunc
+    
+    out = []
+    for d in drafts:
+        res_count = await db.execute(
+            select(sqlfunc.count()).where(QuizResource.quiz_id == d.id)
+        )
+        count = res_count.scalar() or 0
+        out.append({
+            "quiz_id": d.id,
+            "quiz_name": d.quiz_name,
+            "question_count": d.question_count,
+            "quiz_difficulty": d.quiz_difficulty.value,
+            "quiz_duration": d.quiz_duration,
+            "question_types": d.question_types,
+            "created_at": d.created_at.isoformat() if d.created_at else None,
+            "resource_count": count,
+        })
+    return out
+
 @router.post("/{quiz_id}/publish")
 async def publish_quiz(quiz_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     uid = request.state.uid
@@ -76,6 +111,11 @@ async def publish_quiz(quiz_id: int, request: Request, db: AsyncSession = Depend
     if not quiz: raise HTTPException(status_code=404, detail="Quiz not found")
     quiz.status = "published"
     await db.commit()
+    
+    # Cleanup uploaded files after publish
+    from ..routers.ingest import cleanup_quiz_uploads
+    cleanup_quiz_uploads(quiz_id)
+    
     return {"message": "Quiz published successfully"}
 
 @router.get("/{quiz_id}")
@@ -98,6 +138,8 @@ async def get_quiz_details(quiz_id: int, request: Request, db: AsyncSession = De
         "quiz_duration": quiz.quiz_duration,
         "question_count": quiz.question_count,
         "quiz_difficulty": quiz.quiz_difficulty.value,
+        "question_types": quiz.question_types,
+        "show_leaderboard": quiz.show_leaderboard,
         "registered": registered,
         "status": quiz.status
     }
@@ -227,13 +269,44 @@ async def generate_quiz_ai(quiz_id: int, request: Request, db: AsyncSession = De
     if not uid: raise HTTPException(status_code=401, detail="Unauthorized")
     
     from ..graph.quiz_graph import run_quiz_pipeline
+    from ..models.quiz_resource import QuizResource
+    from ..services.ingestion.parser import FileParser
+    import os
     
     quiz_res = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
     quiz = quiz_res.scalar_one_or_none()
     if not quiz: raise HTTPException(status_code=404, detail="Quiz not found")
     
-    # Types hardcoded for now, or extracted from request if we added it to schema
-    questions = await run_quiz_pipeline(quiz_id, quiz.question_count, quiz.quiz_difficulty.value, ["mcq", "scq", "tof"])
+    # Read & parse all local files for this quiz
+    resources_res = await db.execute(
+        select(QuizResource).where(QuizResource.quiz_id == quiz_id)
+    )
+    resources = resources_res.scalars().all()
+    
+    parser = FileParser()
+    all_text_parts = []
+    for resource in resources:
+        if os.path.exists(resource.file_path):
+            try:
+                text = parser.parse_local_file(resource.file_path)
+                if text and text.strip():
+                    all_text_parts.append(text)
+            except Exception as e:
+                print(f"Warning: failed to parse {resource.filename}: {e}")
+    
+    context = "\n\n".join(all_text_parts)
+    if not context.strip():
+        raise HTTPException(status_code=400, detail="No readable content found in uploaded files.")
+    
+    # Read question_types from DB (fallback to defaults)
+    q_types = quiz.question_types or ["mcq", "scq", "tof"]
+    questions = await run_quiz_pipeline(
+        quiz_id, quiz.question_count, quiz.quiz_difficulty.value, q_types,
+        context=context
+    )
+    
+    if not questions:
+        raise HTTPException(status_code=500, detail="Failed to generate questions. AI model quota might be exhausted or unavailable.")
     
     # Delete existing questions
     await db.execute(delete(Question).where(Question.quiz_id == quiz_id))
@@ -244,7 +317,7 @@ async def generate_quiz_ai(quiz_id: int, request: Request, db: AsyncSession = De
         db_q = Question(
             quiz_id=quiz_id,
             question=q["question"],
-            question_type=q["question_type"].upper(),
+            question_type=QuestionType(q["question_type"].strip().lower()),
             correct_answer=q["correct_answer"],
             options=q.get("options")
         )

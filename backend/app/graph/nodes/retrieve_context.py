@@ -1,26 +1,22 @@
 # backend/app/graph/nodes/retrieve_context.py
-from sqlalchemy import text
-from app.db.base import engine
 from app.graph.state import QuizGraphState
 
+# Max characters of context to send to the LLM (~3k tokens)
+MAX_CONTEXT_CHARS = 12000
+
 async def retrieve_context(state: QuizGraphState) -> dict:
-    quiz_id = state["quiz_id"]
-    collection_name = f"quiz_{quiz_id}"
+    """
+    If context was pre-loaded by the generate endpoint (local files),
+    just apply truncation. Otherwise return empty context.
+    """
+    context = state.get("context", "")
     
-    query = text("""
-        SELECT e.document 
-        FROM langchain_pg_embedding e
-        JOIN langchain_pg_collection c ON e.collection_id = c.uuid
-        WHERE c.name = :collection_name
-    """)
-    
-    try:
-        async with engine.connect() as conn:
-            result = await conn.execute(query, {"collection_name": collection_name})
-            documents = [row[0] for row in result.fetchall()]
-        
-        context = "\n\n".join(documents)
-        return {"context": context}
-    except Exception as e:
-        print(f"Error retrieving context for quiz {quiz_id}: {e}")
+    if not context:
+        # No pre-loaded context — this means no files were uploaded
         return {"context": ""}
+    
+    # Truncate to stay within token budget
+    if len(context) > MAX_CONTEXT_CHARS:
+        context = context[:MAX_CONTEXT_CHARS] + "\n\n[...context truncated for token efficiency...]"
+    
+    return {"context": context}

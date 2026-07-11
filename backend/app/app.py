@@ -24,6 +24,7 @@ from .models.document import Document
 from .models.chunk import Chunk # For future
 from .models.chat_message import ChatMessage # For future
 from .models.chat_session import ChatSession # For future
+from .models.quiz_resource import QuizResource
 #import future models here so that Base will pick them else we will get errors
 
 app = FastAPI(

@@ -1,5 +1,6 @@
 # backend/app/schemas/quizes.py
 from pydantic import BaseModel, Field
+from typing import List, Optional
 from ..models.quizes import Difficulty
 from datetime import datetime
 
@@ -12,6 +13,7 @@ class QuizCreate(BaseModel):
     quiz_duration: int
     show_leaderboard: bool = True
     status: str = "draft"
+    question_types: List[str] = ["scq", "mcq"]
 
 
 class QuizUpdate(BaseModel):
@@ -23,6 +25,7 @@ class QuizUpdate(BaseModel):
     quiz_duration: int
     show_leaderboard: bool
     status: str
+    question_types: Optional[List[str]] = None
 
 
 class QuizDelete(BaseModel):
@@ -38,6 +41,7 @@ class QuizResponse(BaseModel):
     quiz_duration: int
     show_leaderboard: bool
     status: str
+    question_types: Optional[List[str]] = None
 
     class Config:
         from_attributes = True

@@ -7,7 +7,7 @@ class GeminiLLM(LLMService):
     """
     Concrete implementation of LLMService for Google Gemini.
     """
-    def __init__(self, api_key: SecretStr, model_name: str = "gemini-2.5-pro", temperature: float = 0.2):
+    def __init__(self, api_key: SecretStr, model_name: str = "gemini-2.5-flash", temperature: float = 0.2):
         self.llm = ChatGoogleGenerativeAI(
             model=model_name,
             temperature=temperature,

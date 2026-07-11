@@ -11,3 +11,4 @@ class QuizGraphState(TypedDict):
     is_valid: bool
     errors: List[str]
     attempt: int
+    raw_llm_output: str

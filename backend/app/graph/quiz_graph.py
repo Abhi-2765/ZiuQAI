@@ -37,17 +37,24 @@ workflow.add_edge("format_output", END)
 
 app_graph = workflow.compile()
 
-async def run_quiz_pipeline(quiz_id: int, question_count: int, difficulty: str, question_types: list[str]) -> list[dict]:
+async def run_quiz_pipeline(
+    quiz_id: int,
+    question_count: int,
+    difficulty: str,
+    question_types: list[str],
+    context: str = "",
+) -> list[dict]:
     initial_state = {
         "quiz_id": quiz_id,
         "question_count": question_count,
         "difficulty": difficulty,
         "question_types": question_types,
-        "context": "",
+        "context": context,
         "questions": [],
         "is_valid": False,
         "errors": [],
-        "attempt": 0
+        "attempt": 0,
+        "raw_llm_output": ""
     }
     
     result = await app_graph.ainvoke(initial_state)

@@ -51,3 +51,9 @@ class FileParser(ParsingService):
             return [TextDoc(content)]
         else:
             raise ValueError(f"Unsupported file type: {suffix}")
+
+    def parse_local_file(self, file_path: str) -> str:
+        """Parse a file already saved on local disk. Returns extracted text."""
+        suffix = self._get_suffix(os.path.basename(file_path))
+        documents = self._load_documents(file_path, suffix)
+        return "\n\n".join([doc.page_content for doc in documents])

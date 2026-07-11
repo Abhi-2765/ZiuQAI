@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Sources from "../components/Generate/Sources";
 import ConfigureQuiz from "../components/Generate/ConfigureQuiz";
@@ -8,11 +8,13 @@ import api from "../utils/api";
 
 const GenerateQuiz = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [step, setStep] = useState(1);
     const [quizId, setQuizId] = useState(null);
     const [generating, setGenerating] = useState(false);
     const [publishing, setPublishing] = useState(false);
     const [questions, setQuestions] = useState([]);
+    const [loading, setLoading] = useState(false);
     
     // Lifted state for sources
     const [files, setFiles] = useState([]);
@@ -27,6 +29,63 @@ const GenerateQuiz = () => {
         show_leaderboard: true,
         question_types: ["scq", "mcq"]
     });
+
+    // Resume draft if ?draft=<quiz_id> is in URL
+    useEffect(() => {
+        const draftId = searchParams.get("draft");
+        if (draftId) {
+            loadDraft(parseInt(draftId));
+        }
+    }, [searchParams]);
+
+    const loadDraft = async (draftQuizId) => {
+        setLoading(true);
+        try {
+            // Load quiz config
+            const quizRes = await api.get(`/quizes/${draftQuizId}`);
+            const quiz = quizRes.data;
+            
+            setQuizId(draftQuizId);
+            setConfig({
+                quiz_name: quiz.quiz_name || "",
+                question_count: quiz.question_count || 10,
+                quiz_difficulty: quiz.quiz_difficulty || "MEDIUM",
+                quiz_start_time: quiz.quiz_start_time 
+                    ? new Date(quiz.quiz_start_time).toISOString().slice(0, 16) 
+                    : "",
+                quiz_duration: quiz.quiz_duration || 15,
+                show_leaderboard: quiz.show_leaderboard ?? true,
+                question_types: quiz.question_types || ["scq", "mcq"],
+            });
+
+            // Load uploaded resources
+            const resourcesRes = await api.get(`/ingest/resources/${draftQuizId}`);
+            const resources = resourcesRes.data || [];
+            
+            // Convert server resources to file-card format (already uploaded)
+            const restoredFiles = resources.map((r) => ({
+                id: `server-${r.id}`,
+                file: null,
+                name: r.filename,
+                size: r.file_size_mb + " MB",
+                progress: 100,
+                uploaded: true,
+                error: false,
+                uploading: false,
+                resourceId: r.id,
+            }));
+            setFiles(restoredFiles);
+
+            // Jump to step 2 (resources) if there are files, otherwise stay on step 1
+            setStep(restoredFiles.length > 0 ? 2 : 1);
+            toast.info(`Resuming draft: "${quiz.quiz_name}"`);
+        } catch (err) {
+            console.error("Failed to load draft:", err);
+            toast.error("Failed to load draft quiz");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleNext = async () => {
         if (step === 1) {
@@ -45,7 +104,7 @@ const GenerateQuiz = () => {
             }
 
             try {
-                // Format payload. Map Difficulty to uppercase enum
+                // Format payload
                 const payload = {
                     quiz_name: config.quiz_name,
                     question_count: parseInt(config.question_count),
@@ -53,7 +112,8 @@ const GenerateQuiz = () => {
                     quiz_start_time: new Date(config.quiz_start_time).toISOString(),
                     quiz_duration: parseInt(config.quiz_duration),
                     show_leaderboard: config.show_leaderboard,
-                    status: "draft"
+                    status: "draft",
+                    question_types: config.question_types
                 };
 
                 if (quizId) {
@@ -68,6 +128,12 @@ const GenerateQuiz = () => {
                 toast.error("Failed to save quiz configuration");
             }
         } else if (step === 2) {
+            // Validate that user uploaded at least one resource
+            const hasUploadedFiles = files.some(f => f.uploaded);
+            if (!hasUploadedFiles && urls.length === 0) {
+                toast.error("Please upload at least one file or add a website link before proceeding.");
+                return;
+            }
             setStep(3);
         }
     };
@@ -81,7 +147,8 @@ const GenerateQuiz = () => {
             toast.success("AI generated questions successfully!");
         } catch (err) {
             console.error(err);
-            toast.error("Failed to generate questions. Ensure you have uploaded resources first.");
+            const detail = err.response?.data?.detail || "Failed to generate questions. Ensure you have uploaded resources first.";
+            toast.error(detail);
         } finally {
             setGenerating(false);
         }
@@ -102,6 +169,17 @@ const GenerateQuiz = () => {
         }
     };
 
+    if (loading) {
+        return (
+            <div className="min-h-screen pt-30 pb-12 px-6 bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-slate-600 dark:text-slate-400 font-semibold">Loading draft...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="
             min-h-screen pt-30 pb-12 px-6 
@@ -120,39 +198,26 @@ const GenerateQuiz = () => {
                 </header>
 
                 <div className="flex items-center gap-4 mb-10 overflow-x-auto pb-4 md:pb-0">
-                    <div className={`
-                        flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300
-                        ${step === 1
-                            ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
-                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}
-                    `}>
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-xs font-bold">1</span>
-                        <span className="font-semibold whitespace-nowrap">Configuration</span>
-                    </div>
-
-                    <div className="w-12 h-0.5 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
-
-                    <div className={`
-                        flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300
-                        ${step === 2
-                            ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
-                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}
-                    `}>
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-xs font-bold">2</span>
-                        <span className="font-semibold whitespace-nowrap">Resources</span>
-                    </div>
-
-                    <div className="w-12 h-0.5 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
-
-                    <div className={`
-                        flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300
-                        ${step === 3
-                            ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
-                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}
-                    `}>
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-xs font-bold">3</span>
-                        <span className="font-semibold whitespace-nowrap">Preview Quiz</span>
-                    </div>
+                    {[
+                        { num: 1, label: "Configuration" },
+                        { num: 2, label: "Resources" },
+                        { num: 3, label: "Preview Quiz" },
+                    ].map(({ num, label }, idx) => (
+                        <div key={num} className="flex items-center gap-4">
+                            {idx > 0 && <div className="w-12 h-0.5 bg-slate-200 dark:bg-slate-700 rounded-full"></div>}
+                            <div className={`
+                                flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300
+                                ${step === num
+                                    ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
+                                    : step > num
+                                        ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 text-green-600 dark:text-green-400"
+                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}
+                            `}>
+                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-xs font-bold">{num}</span>
+                                <span className="font-semibold whitespace-nowrap">{label}</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 <div className="
