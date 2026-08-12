@@ -19,6 +19,8 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text('ALTER TABLE participants ADD COLUMN IF NOT EXISTS submitted BOOLEAN DEFAULT FALSE;'))
+        await conn.execute(text('ALTER TABLE participants ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMP WITH TIME ZONE;'))
     yield
 
 app = FastAPI(

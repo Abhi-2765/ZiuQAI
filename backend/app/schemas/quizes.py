@@ -1,6 +1,6 @@
 # backend/app/schemas/quizes.py
 from pydantic import BaseModel, Field, ConfigDict, field_validator
-from typing import List, Optional
+from typing import List, Optional, Any
 from app.models.quizes import Difficulty
 from datetime import datetime
 
@@ -15,6 +15,13 @@ class QuizCreate(BaseModel):
     show_leaderboard: bool = True
     status: str = Field(default="draft", pattern="^(draft|published)$")
     question_types: List[str] = ["scq", "mcq"]
+
+    @field_validator("quiz_difficulty", mode="before")
+    @classmethod
+    def uppercase_difficulty(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            return v.strip().upper()
+        return v
 
     @field_validator("quiz_name", mode="before")
     @classmethod
@@ -43,6 +50,13 @@ class QuizUpdate(BaseModel):
     show_leaderboard: Optional[bool] = None
     status: Optional[str] = Field(default=None, pattern="^(draft|published)$")
     question_types: Optional[List[str]] = None
+
+    @field_validator("quiz_difficulty", mode="before")
+    @classmethod
+    def uppercase_difficulty(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            return v.strip().upper()
+        return v
 
     @field_validator("quiz_name", mode="before")
     @classmethod

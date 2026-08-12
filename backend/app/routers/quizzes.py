@@ -68,6 +68,9 @@ async def update_quiz(
     if quiz_data.quiz_difficulty is not None:
         quiz.quiz_difficulty = quiz_data.quiz_difficulty
     if quiz_data.quiz_start_time is not None:
+        if quiz.quiz_start_time.replace(tzinfo=timezone.utc) <= datetime.now(timezone.utc):
+            if quiz_data.quiz_start_time.replace(tzinfo=timezone.utc) != quiz.quiz_start_time.replace(tzinfo=timezone.utc):
+                raise HTTPException(status_code=400, detail="Cannot change start time after the quiz has started.")
         quiz.quiz_start_time = quiz_data.quiz_start_time
     if quiz_data.quiz_duration is not None:
         quiz.quiz_duration = quiz_data.quiz_duration
@@ -170,6 +173,7 @@ async def get_quiz_details(
     )
     participant = p_result.scalar_one_or_none()
     registered = participant is not None
+    submitted = participant.submitted if participant else False
 
     return {
         "id": quiz.id,
@@ -181,6 +185,7 @@ async def get_quiz_details(
         "question_types": quiz.question_types,
         "show_leaderboard": quiz.show_leaderboard,
         "registered": registered,
+        "submitted": submitted,
         "status": quiz.status,
         "is_owner": quiz.creator_uid == uid
     }
@@ -228,8 +233,11 @@ async def get_quiz_questions(
     p_result = await db.execute(
         select(Participant).where(Participant.quiz_id == quiz_id, Participant.user_id == uid)
     )
-    if not p_result.scalar_one_or_none():
+    participant = p_result.scalar_one_or_none()
+    if not participant:
         raise HTTPException(status_code=403, detail="Not registered for this quiz")
+    if participant.submitted:
+        raise HTTPException(status_code=403, detail="Quiz attempt already submitted")
 
     result = await db.execute(select(Question).where(Question.quiz_id == quiz_id))
     questions = result.scalars().all()
@@ -259,7 +267,11 @@ async def get_attempt_responses(
     ur_result = await db.execute(
         select(UserResponse).where(UserResponse.participant_id == participant.id)
     )
-    responses = {str(ur.qid): ur.response for ur in ur_result.scalars().all() if ur.response is not None}
+    responses = {
+        str(ur.qid): ur.response
+        for ur in ur_result.scalars().all()
+        if ur.response is not None and ur.response != "None"
+    }
     return {"responses": responses}
 
 class SubmitResponses(BaseModel):
@@ -276,6 +288,8 @@ async def save_attempt_responses(
     participant = p_result.scalar_one_or_none()
     if not participant:
         raise HTTPException(status_code=403, detail="Not registered for this quiz")
+    if participant.submitted:
+        raise HTTPException(status_code=403, detail="Quiz attempt already submitted")
 
     existing_ur_result = await db.execute(
         select(UserResponse).where(UserResponse.participant_id == participant.id)
@@ -309,6 +323,8 @@ async def submit_quiz(
     participant = p_result.scalar_one_or_none()
     if not participant:
         raise HTTPException(status_code=403, detail="Not registered for this quiz")
+    if participant.submitted:
+        raise HTTPException(status_code=400, detail="Quiz attempt already submitted")
 
     q_result = await db.execute(select(Question).where(Question.quiz_id == quiz_id))
     questions = q_result.scalars().all()
@@ -346,6 +362,8 @@ async def submit_quiz(
             continue
 
     participant.score = float(correct_count)
+    participant.submitted = True
+    participant.submitted_at = datetime.now(timezone.utc)
     await db.commit()
     
     return {"score": correct_count, "total": len(questions)}
@@ -471,3 +489,50 @@ async def generate_quiz_ai(
         }
         for q in db_questions
     ]
+
+@router.get("/dashboard/stats")
+async def get_dashboard_stats(
+    request: Request, db: AsyncSession = Depends(get_db)
+):
+    uid = get_current_uid(request)
+    
+    # Hosted count
+    hosted_result = await db.execute(select(func.count(Quiz.id)).where(Quiz.creator_uid == uid))
+    hosted_count = hosted_result.scalar_one_or_none() or 0
+    
+    # Attempted count
+    attempted_result = await db.execute(
+        select(func.count(Participant.id)).where(Participant.user_id == uid, Participant.submitted == True)
+    )
+    attempted_count = attempted_result.scalar_one_or_none() or 0
+    
+    # Recent activity
+    recent_result = await db.execute(
+        select(Participant, Quiz)
+        .join(Quiz, Participant.quiz_id == Quiz.id)
+        .where(Participant.user_id == uid, Participant.submitted == True)
+        .order_by(Participant.submitted_at.desc())
+        .limit(4)
+    )
+    
+    recent_activity = []
+    for part, quiz in recent_result.all():
+        percentage = 0
+        if quiz.question_count > 0:
+            percentage = int((part.score / quiz.question_count) * 100)
+            
+        recent_activity.append({
+            "quizName": quiz.quiz_name,
+            "date": part.submitted_at.isoformat() if part.submitted_at else None,
+            "score": int(part.score) if part.score.is_integer() else part.score,
+            "total": quiz.question_count,
+            "percentage": percentage,
+            "difficulty": quiz.quiz_difficulty.value
+        })
+        
+    return {
+        "hostedCount": hosted_count,
+        "attemptedCount": attempted_count,
+        "recentActivity": recent_activity
+    }
+

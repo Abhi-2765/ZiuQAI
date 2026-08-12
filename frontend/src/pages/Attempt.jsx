@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Search, Calendar, Clock, Award, Play } from "lucide-react";
+import { Search, Calendar, Clock, Award, Play, CheckCircle2 } from "lucide-react";
 import { quizApi } from "../api/quizApi";
 
 export default function Attempt() {
@@ -187,6 +187,28 @@ export default function Attempt() {
                                     >
                                         {registering ? "Registering..." : "Register for Quiz"}
                                     </button>
+                                ) : quizDetails.submitted ? (
+                                    <div className="text-center space-y-4">
+                                        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-200/50 flex flex-col items-center">
+                                            <span className="text-xs font-semibold uppercase tracking-wider mb-1">Status</span>
+                                            <span className="text-xl font-extrabold font-vend flex items-center gap-2">
+                                                <CheckCircle2 size={20} />
+                                                Attempt Submitted
+                                            </span>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                You have already completed this quiz attempt.
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => navigate(`/standings/${quizDetails.id}`)}
+                                            className="
+                                                w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg
+                                                shadow-indigo-200 dark:shadow-none transition-all duration-300 flex items-center justify-center gap-2
+                                            "
+                                        >
+                                            View Standings / Leaderboard
+                                        </button>
+                                    </div>
                                 ) : (
                                     <div className="text-center space-y-4">
                                         {timeLeftToStart > 0 ? (

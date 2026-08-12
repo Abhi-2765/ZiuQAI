@@ -1,9 +1,9 @@
 # backend/app/models/participants.py
 from __future__ import annotations
 from datetime import datetime
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
-from sqlalchemy import Integer, Float, String, ForeignKey, DateTime, func
+from sqlalchemy import Integer, Float, String, Boolean, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -23,6 +23,8 @@ class Participant(Base):
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.uid", ondelete="CASCADE"), nullable=False, index=True)
 
     score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    submitted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    submitted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -1,12 +1,14 @@
 # backend/tests/test_auth.py
 import pytest
+from datetime import datetime
 from httpx import AsyncClient
 
 async def test_auth_flow(client: AsyncClient):
     # 1. Register a new user
+    unique_email = f"testuser_{int(datetime.now().timestamp())}@example.com"
     register_payload = {
         "username": "testuser",
-        "email": "testuser@example.com",
+        "email": unique_email,
         "password": "strongpassword123"
     }
     
@@ -19,7 +21,7 @@ async def test_auth_flow(client: AsyncClient):
     
     # 2. Login
     login_payload = {
-        "email": "testuser@example.com",
+        "email": unique_email,
         "password": "strongpassword123"
     }
     response = await client.post("/auth/login", json=login_payload)
@@ -35,5 +37,5 @@ async def test_auth_flow(client: AsyncClient):
     assert response.status_code == 200
     me_data = response.json()
     assert me_data["username"] == "testuser"
-    assert me_data["email"] == "testuser@example.com"
+    assert me_data["email"] == unique_email
     assert me_data["user_code"] == user_code

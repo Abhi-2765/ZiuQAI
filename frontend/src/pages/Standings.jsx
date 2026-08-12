@@ -54,9 +54,7 @@ export default function Standings() {
     };
 
     useEffect(() => {
-        if (!isNaN(numericQuizId)) {
-            fetchLeaderboard();
-        }
+        fetchLeaderboard();
     }, [quizId]);
 
     const handleToggleVisibility = async () => {

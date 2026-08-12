@@ -34,17 +34,18 @@ export default function Question({ question, selectedAnswer, onAnswerChange }) {
     const handleOptionSelect = (option) => {
         if (!onAnswerChange) return;
 
+        const optStr = String(option);
         if (qType === "mcq") {
             const currentSelected = getSelectedArray();
             let updated;
-            if (currentSelected.includes(option)) {
-                updated = currentSelected.filter((item) => item !== option);
+            if (currentSelected.includes(optStr)) {
+                updated = currentSelected.filter((item) => item !== optStr);
             } else {
-                updated = [...currentSelected, option];
+                updated = [...currentSelected, optStr];
             }
             onAnswerChange(updated.join(", "));
         } else {
-            onAnswerChange(option);
+            onAnswerChange(optStr);
         }
     };
 
