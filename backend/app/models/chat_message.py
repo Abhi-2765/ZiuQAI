@@ -7,7 +7,7 @@ from sqlalchemy import String, Text, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from ..db.base import Base
+from app.database import Base
 
 if TYPE_CHECKING:
     from .chat_session import ChatSession

@@ -7,7 +7,7 @@ from sqlalchemy import String, DateTime, Integer, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from ..db.base import Base
+from app.database import Base
 
 if TYPE_CHECKING:
     from .quizes import Quiz

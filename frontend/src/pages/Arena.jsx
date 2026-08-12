@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Timer, ArrowLeft, ArrowRight, CheckCircle2, BookmarkPlus, AlertTriangle } from "lucide-react";
 import ThemeChanger from "../components/common/ThemeChanger";
 import Question from "../components/Arena/Question";
 import Navigation from "../components/Arena/Navigation";
-import api from "../utils/api";
+import { quizApi } from "../api/quizApi";
 
 export default function Arena() {
     const { quizId } = useParams();
@@ -13,31 +13,82 @@ export default function Arena() {
 
     const [loading, setLoading] = useState(true);
     const [questions, setQuestions] = useState([]);
-    const [answers, setAnswers] = useState({}); // { qid: answer_string }
-    const [statuses, setStatuses] = useState({}); // { index: "notVisited" | "complete" | "markForReview" }
+    const [answers, setAnswers] = useState({});
+    const [statuses, setStatuses] = useState({});
     const [questionIndex, setQuestionIndex] = useState(0);
-    const [time, setTime] = useState(0); // in seconds
+    const [time, setTime] = useState(0);
     const [submitting, setSubmitting] = useState(false);
 
-    // Fetch questions and details
+    const answersRef = useRef(answers);
+    useEffect(() => {
+        answersRef.current = answers;
+    }, [answers]);
+
+    const submittedRef = useRef(false);
+
+    const isAnswered = (val) => val != null && String(val).trim() !== "";
+
     useEffect(() => {
         const loadQuizData = async () => {
             try {
-                // Get details for duration
-                const detailsRes = await api.get(`/quizes/${quizId}`);
-                const duration = detailsRes.data.quiz_duration * 60;
+                const detailsRes = await quizApi.getQuizDetails(quizId);
+                const totalDuration = detailsRes.data.quiz_duration * 60;
                 
-                // Get questions
-                const qRes = await api.get(`/quizes/${quizId}/attempt/questions`);
-                setQuestions(qRes.data);
-                
-                // Initialize state
-                setTime(duration);
+                const qRes = await quizApi.getAttemptQuestions(quizId);
+                const qList = qRes.data;
+                setQuestions(qList);
+
+                // Fetch server draft responses
+                let serverResponses = {};
+                try {
+                    const respRes = await quizApi.getAttemptResponses(quizId);
+                    serverResponses = respRes.data.responses || {};
+                } catch (e) {
+                    console.warn("Could not load server draft responses", e);
+                }
+
+                // Fetch local storage responses
+                let localAnswers = {};
+                try {
+                    const savedAns = localStorage.getItem(`ziuq_answers_${quizId}`);
+                    if (savedAns) localAnswers = JSON.parse(savedAns);
+                } catch (e) {
+                    console.warn("Could not load local answers", e);
+                }
+
+                const mergedAnswers = { ...serverResponses, ...localAnswers };
+                setAnswers(mergedAnswers);
+
+                // Load or initialize statuses
+                let savedStatuses = {};
+                try {
+                    const s = localStorage.getItem(`ziuq_statuses_${quizId}`);
+                    if (s) savedStatuses = JSON.parse(s);
+                } catch (e) {}
+
                 const initialStatuses = {};
-                qRes.data.forEach((_, idx) => {
-                    initialStatuses[idx] = idx === 0 ? "current" : "notVisited";
+                qList.forEach((q, idx) => {
+                    if (savedStatuses[idx]) {
+                        initialStatuses[idx] = savedStatuses[idx];
+                    } else if (isAnswered(mergedAnswers[q.id])) {
+                        initialStatuses[idx] = "complete";
+                    } else {
+                        initialStatuses[idx] = idx === 0 ? "current" : "notVisited";
+                    }
                 });
                 setStatuses(initialStatuses);
+
+                // Timer wall-clock expiration persistence
+                const savedExpires = localStorage.getItem(`ziuq_expires_at_${quizId}`);
+                let remainingSeconds = totalDuration;
+                if (savedExpires && !isNaN(parseInt(savedExpires, 10))) {
+                    const diff = Math.floor((parseInt(savedExpires, 10) - Date.now()) / 1000);
+                    remainingSeconds = diff > 0 ? diff : 0;
+                } else {
+                    const expiresAt = Date.now() + totalDuration * 1000;
+                    localStorage.setItem(`ziuq_expires_at_${quizId}`, expiresAt.toString());
+                }
+                setTime(remainingSeconds);
             } catch (err) {
                 console.error(err);
                 toast.error("Failed to load quiz attempt");
@@ -47,59 +98,92 @@ export default function Arena() {
             }
         };
         loadQuizData();
-    }, [quizId]);
+    }, [quizId, navigate]);
 
-    // Timer countdown
+    // Persist answers and statuses locally
     useEffect(() => {
-        if (loading || time <= 0) {
-            if (time === 0 && !loading && questions.length > 0) {
-                handleSubmit(true); // Auto submit on timeout
+        if (!loading && quizId) {
+            try {
+                localStorage.setItem(`ziuq_answers_${quizId}`, JSON.stringify(answers));
+                localStorage.setItem(`ziuq_statuses_${quizId}`, JSON.stringify(statuses));
+            } catch (e) {}
+        }
+    }, [answers, statuses, loading, quizId]);
+
+    // Timer effect with auto-submission on expiration
+    useEffect(() => {
+        if (loading || questions.length === 0) return;
+
+        if (time <= 0) {
+            if (!submittedRef.current) {
+                handleSubmit(true);
             }
             return;
         }
 
         const timer = setInterval(() => {
-            setTime((prev) => prev - 1);
+            setTime((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [time, loading]);
+    }, [time, loading, questions.length]);
 
     const formatTime = (totalSeconds) => {
-        const m = Math.floor(totalSeconds / 60);
-        const s = totalSeconds % 60;
+        const m = Math.floor(Math.max(0, totalSeconds) / 60);
+        const s = Math.floor(Math.max(0, totalSeconds) % 60);
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
     const handleAnswerChange = (answer) => {
         const currentQ = questions[questionIndex];
         if (!currentQ) return;
-        setAnswers({ ...answers, [currentQ.id]: answer });
+        const updated = { ...answersRef.current, [currentQ.id]: answer };
+        setAnswers(updated);
+        quizApi.saveAttemptResponses(quizId, updated).catch(() => {});
     };
 
     const handleMarkReview = () => {
-        setStatuses({ ...statuses, [questionIndex]: "markForReview" });
-        handleNext();
+        const nextIdx = questionIndex < questions.length - 1 ? questionIndex + 1 : questionIndex;
+        setStatuses((prev) => ({
+            ...prev,
+            [questionIndex]: "markForReview",
+            [nextIdx]: prev[nextIdx] === "notVisited" ? "current" : prev[nextIdx]
+        }));
+        if (questionIndex < questions.length - 1) {
+            setQuestionIndex(nextIdx);
+        }
     };
 
     const handleSaveNext = () => {
         const currentQ = questions[questionIndex];
-        if (answers[currentQ.id]) {
-            setStatuses({ ...statuses, [questionIndex]: "complete" });
-        } else {
-            setStatuses({ ...statuses, [questionIndex]: "current" }); // marked as not attempted (red/current)
+        const hasAns = isAnswered(answersRef.current[currentQ.id]);
+        const nextIdx = questionIndex < questions.length - 1 ? questionIndex + 1 : questionIndex;
+        setStatuses((prev) => ({
+            ...prev,
+            [questionIndex]: hasAns ? "complete" : "current",
+            [nextIdx]: prev[nextIdx] === "notVisited" ? "current" : prev[nextIdx]
+        }));
+        quizApi.saveAttemptResponses(quizId, answersRef.current).catch(() => {});
+        if (questionIndex < questions.length - 1) {
+            setQuestionIndex(nextIdx);
         }
-        handleNext();
     };
 
     const handleNext = () => {
         if (questionIndex < questions.length - 1) {
             const nextIdx = questionIndex + 1;
             setQuestionIndex(nextIdx);
-            // Mark next as current if it was notVisited
-            if (statuses[nextIdx] === "notVisited") {
-                setStatuses({ ...statuses, [questionIndex]: statuses[questionIndex] === "notVisited" ? "current" : statuses[questionIndex], [nextIdx]: "current" });
-            }
+            setStatuses((prev) => ({
+                ...prev,
+                [questionIndex]: prev[questionIndex] === "notVisited" ? "current" : prev[questionIndex],
+                [nextIdx]: prev[nextIdx] === "notVisited" ? "current" : prev[nextIdx]
+            }));
         }
     };
 
@@ -111,21 +195,31 @@ export default function Arena() {
 
     const handleSelectQuestion = (idx) => {
         setQuestionIndex(idx);
-        if (statuses[idx] === "notVisited") {
-            setStatuses({ ...statuses, [idx]: "current" });
-        }
+        setStatuses((prev) => {
+            if (prev[idx] === "notVisited") {
+                return { ...prev, [idx]: "current" };
+            }
+            return prev;
+        });
     };
 
     const handleSubmit = async (auto = false) => {
+        if (submittedRef.current || submitting) return;
         if (!auto && !window.confirm("Are you sure you want to submit your quiz attempt?")) return;
         
+        submittedRef.current = true;
         setSubmitting(true);
         try {
-            await api.post(`/quizes/${quizId}/attempt/submit`, { responses: answers });
+            const currentAnswers = answersRef.current;
+            await quizApi.submitQuiz(quizId, currentAnswers);
+            localStorage.removeItem(`ziuq_answers_${quizId}`);
+            localStorage.removeItem(`ziuq_statuses_${quizId}`);
+            localStorage.removeItem(`ziuq_expires_at_${quizId}`);
             toast.success("Quiz submitted successfully!");
             navigate(`/standings/${quizId}`);
         } catch (err) {
             console.error(err);
+            submittedRef.current = false;
             toast.error("Failed to submit quiz responses");
         } finally {
             setSubmitting(false);
@@ -160,7 +254,6 @@ export default function Arena() {
             text-slate-800 dark:text-slate-100 
             font-vend
         ">
-            {/* Header */}
             <section className="flex justify-between items-center mb-10">
                 <div className="
                     text-lg font-bold border-2 border-violet-600 
@@ -195,7 +288,6 @@ export default function Arena() {
                 </div>
             </section>
 
-            {/* Main Layout: Question + Navigator */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto items-start">
                 <div className="lg:col-span-8 bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
                     <Question
@@ -238,7 +330,6 @@ export default function Arena() {
                 </div>
             </div>
 
-            {/* Navigation buttons at bottom */}
             <section className="flex justify-center gap-6 mt-12 pb-10">
                 <button
                     onClick={handlePrev}

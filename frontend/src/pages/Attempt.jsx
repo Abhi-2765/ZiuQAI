@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Search, Calendar, Clock, Award, Play, AlertTriangle } from "lucide-react";
-import api from "../utils/api";
+import { Search, Calendar, Clock, Award, Play } from "lucide-react";
+import { quizApi } from "../api/quizApi";
 
 export default function Attempt() {
     const navigate = useNavigate();
@@ -11,9 +11,8 @@ export default function Attempt() {
     const [quizDetails, setQuizDetails] = useState(null);
     const [loading, setLoading] = useState(false);
     const [registering, setRegistering] = useState(false);
-    const [timeLeftToStart, setTimeLeftToStart] = useState(0); // in seconds
+    const [timeLeftToStart, setTimeLeftToStart] = useState(0);
 
-    // If quiz_id passed in URL, auto-load it
     useEffect(() => {
         const idFromUrl = searchParams.get("quiz_id");
         if (idFromUrl) {
@@ -22,7 +21,6 @@ export default function Attempt() {
         }
     }, [searchParams]);
 
-    // Timer logic for countdown
     useEffect(() => {
         if (!quizDetails || quizDetails.registered === false) return;
         
@@ -49,10 +47,9 @@ export default function Attempt() {
         setLoading(true);
         setQuizDetails(null);
         try {
-            const res = await api.get(`/quizes/${targetId}`);
+            const res = await quizApi.getQuizDetails(targetId);
             setQuizDetails(res.data);
             
-            // Calculate initial time left
             const startTime = new Date(res.data.quiz_start_time).getTime();
             const now = new Date().getTime();
             setTimeLeftToStart(Math.max(0, Math.floor((startTime - now) / 1000)));
@@ -68,9 +65,8 @@ export default function Attempt() {
         if (!quizDetails) return;
         setRegistering(true);
         try {
-            await api.post(`/quizes/${quizDetails.id}/register`);
+            await quizApi.registerForQuiz(quizDetails.id);
             toast.success("Registered for quiz successfully!");
-            // Refresh details
             fetchQuizDetails(quizDetails.id);
         } catch (err) {
             console.error(err);
@@ -179,7 +175,6 @@ export default function Attempt() {
                                 </div>
                             </div>
 
-                            {/* Action Area */}
                             <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
                                 {!quizDetails.registered ? (
                                     <button

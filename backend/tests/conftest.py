@@ -5,21 +5,22 @@ from typing import AsyncGenerator
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 
-from app.app import app
-from app.db.base import Base, get_db
-from app.core.config import settings
+from app.main import app
+from app.database import Base, get_db
+from app.config import settings
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_db():
-    async def reset_db():
+    async def init_db():
         engine = create_async_engine(settings.DATABASE_URL)
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
             await conn.run_sync(Base.metadata.create_all)
         await engine.dispose()
     
-    asyncio.run(reset_db())
+    asyncio.run(init_db())
 
 @pytest.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:

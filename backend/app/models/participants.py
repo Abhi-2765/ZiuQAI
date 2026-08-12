@@ -6,7 +6,7 @@ from typing import List, TYPE_CHECKING
 from sqlalchemy import Integer, Float, String, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..db.base import Base
+from app.database import Base
 
 if TYPE_CHECKING:
     from .quizes import Quiz

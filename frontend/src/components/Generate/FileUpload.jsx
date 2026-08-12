@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { UploadCloud, File, X, Check, AlertCircle } from "lucide-react";
 import { toast } from "react-toastify";
-import api from "../../utils/api";
+import { ingestApi } from "../../api/ingestApi";
 
 export default function FileUpload({ quizId, files, setFiles }) {
     const [dragActive, setDragActive] = useState(false);
@@ -47,7 +47,6 @@ export default function FileUpload({ quizId, files, setFiles }) {
                 resourceId: null,
             };
             setFiles((prev) => [...prev, fileObj]);
-            // Auto-upload immediately
             uploadSingleFile(fileObj);
         });
     };
@@ -57,21 +56,7 @@ export default function FileUpload({ quizId, files, setFiles }) {
         formData.append("file", fileObj.file);
 
         try {
-            const res = await api.post(`/ingest/upload?quiz_id=${quizId}`, formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-                onUploadProgress: (progressEvent) => {
-                    if (progressEvent.total) {
-                        const percentCompleted = Math.round(
-                            (progressEvent.loaded * 100) / progressEvent.total
-                        );
-                        setFiles((prev) =>
-                            prev.map((f) =>
-                                f.id === fileObj.id ? { ...f, progress: percentCompleted } : f
-                            )
-                        );
-                    }
-                },
-            });
+            const res = await ingestApi.uploadFile(formData, quizId);
 
             setFiles((prev) =>
                 prev.map((f) =>
@@ -92,10 +77,9 @@ export default function FileUpload({ quizId, files, setFiles }) {
     };
 
     const handleRemove = async (fileObj) => {
-        // If uploaded to backend, delete from server too
         if (fileObj.resourceId && quizId) {
             try {
-                await api.delete(`/ingest/resources/${quizId}/${fileObj.resourceId}`);
+                await ingestApi.deleteResource(quizId, fileObj.resourceId);
             } catch (err) {
                 console.error("Failed to delete resource from server:", err);
             }
@@ -114,7 +98,6 @@ export default function FileUpload({ quizId, files, setFiles }) {
 
     return (
         <div className="h-full flex flex-col">
-            {/* Drop Zone */}
             <div
                 className={`
                     flex-1 flex flex-col items-center justify-center
@@ -156,7 +139,6 @@ export default function FileUpload({ quizId, files, setFiles }) {
                 </div>
             </div>
 
-            {/* File List */}
             {files.length > 0 && (
                 <div className="mt-6 space-y-3">
                     <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">

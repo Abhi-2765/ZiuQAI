@@ -1,6 +1,6 @@
 # backend/app/schemas/questions.py
-from pydantic import BaseModel, Field
-from ..models.questions import QuestionType
+from pydantic import BaseModel, Field, ConfigDict
+from app.models.questions import QuestionType
 
 class QuestionCreate(BaseModel):
     quiz_id: int
@@ -27,6 +27,4 @@ class QuestionResponse(BaseModel):
     correct_answer: str
     options: list[str] | None = None
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

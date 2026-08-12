@@ -4,7 +4,8 @@ import { toast } from "react-toastify";
 import Sources from "../components/Generate/Sources";
 import ConfigureQuiz from "../components/Generate/ConfigureQuiz";
 import PreviewQuiz from "../components/Generate/PreviewQuiz";
-import api from "../utils/api";
+import { quizApi } from "../api/quizApi";
+import { ingestApi } from "../api/ingestApi";
 
 const GenerateQuiz = () => {
     const navigate = useNavigate();
@@ -30,7 +31,6 @@ const GenerateQuiz = () => {
         question_types: ["scq", "mcq"]
     });
 
-    // Resume draft if ?draft=<quiz_id> is in URL
     useEffect(() => {
         const draftId = searchParams.get("draft");
         if (draftId) {
@@ -41,8 +41,7 @@ const GenerateQuiz = () => {
     const loadDraft = async (draftQuizId) => {
         setLoading(true);
         try {
-            // Load quiz config
-            const quizRes = await api.get(`/quizes/${draftQuizId}`);
+            const quizRes = await quizApi.getQuizDetails(draftQuizId);
             const quiz = quizRes.data;
             
             setQuizId(draftQuizId);
@@ -58,11 +57,9 @@ const GenerateQuiz = () => {
                 question_types: quiz.question_types || ["scq", "mcq"],
             });
 
-            // Load uploaded resources
-            const resourcesRes = await api.get(`/ingest/resources/${draftQuizId}`);
+            const resourcesRes = await ingestApi.getResources(draftQuizId);
             const resources = resourcesRes.data || [];
             
-            // Convert server resources to file-card format (already uploaded)
             const restoredFiles = resources.map((r) => ({
                 id: `server-${r.id}`,
                 file: null,
@@ -75,8 +72,6 @@ const GenerateQuiz = () => {
                 resourceId: r.id,
             }));
             setFiles(restoredFiles);
-
-            // Jump to step 2 (resources) if there are files, otherwise stay on step 1
             setStep(restoredFiles.length > 0 ? 2 : 1);
             toast.info(`Resuming draft: "${quiz.quiz_name}"`);
         } catch (err) {
@@ -89,7 +84,6 @@ const GenerateQuiz = () => {
 
     const handleNext = async () => {
         if (step === 1) {
-            // Validate configuration
             if (!config.quiz_name.trim()) {
                 toast.error("Please enter a quiz name");
                 return;
@@ -104,7 +98,6 @@ const GenerateQuiz = () => {
             }
 
             try {
-                // Format payload
                 const payload = {
                     quiz_name: config.quiz_name,
                     question_count: parseInt(config.question_count),
@@ -117,9 +110,9 @@ const GenerateQuiz = () => {
                 };
 
                 if (quizId) {
-                    await api.put("/quizes/update", { ...payload, quiz_id: quizId });
+                    await quizApi.updateQuiz({ ...payload, quiz_id: quizId });
                 } else {
-                    const res = await api.post("/quizes/create", payload);
+                    const res = await quizApi.createQuiz(payload);
                     setQuizId(res.data.quiz_id || res.data.id);
                 }
                 setStep(2);
@@ -128,7 +121,6 @@ const GenerateQuiz = () => {
                 toast.error("Failed to save quiz configuration");
             }
         } else if (step === 2) {
-            // Validate that user uploaded at least one resource
             const hasUploadedFiles = files.some(f => f.uploaded);
             if (!hasUploadedFiles && urls.length === 0) {
                 toast.error("Please upload at least one file or add a website link before proceeding.");
@@ -142,7 +134,7 @@ const GenerateQuiz = () => {
         if (!quizId) return;
         setGenerating(true);
         try {
-            const res = await api.post(`/quizes/${quizId}/generate`);
+            const res = await quizApi.generateAIQuiz(quizId);
             setQuestions(res.data);
             toast.success("AI generated questions successfully!");
         } catch (err) {
@@ -158,7 +150,7 @@ const GenerateQuiz = () => {
         if (!quizId) return;
         setPublishing(true);
         try {
-            await api.post(`/quizes/${quizId}/publish`);
+            await quizApi.publishQuiz(quizId);
             toast.success("Quiz published successfully!");
             navigate("/host");
         } catch (err) {

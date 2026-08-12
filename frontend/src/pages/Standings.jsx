@@ -1,36 +1,76 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trophy, Medal, Lock, ArrowLeft } from "lucide-react";
-import api from "../utils/api";
+import { Trophy, Medal, Lock, ArrowLeft, Shield, Eye, EyeOff } from "lucide-react";
+import { toast } from "react-toastify";
+import { quizApi } from "../api/quizApi";
 
 export default function Standings() {
     const { quizId } = useParams();
     const navigate = useNavigate();
     const [standings, setStandings] = useState([]);
+    const [quizDetails, setQuizDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [locked, setLocked] = useState(false);
     const [lockMessage, setLockMessage] = useState("");
 
+    const numericQuizId = parseInt(quizId, 10);
+
     const fetchLeaderboard = async () => {
+        if (isNaN(numericQuizId)) {
+            setLoading(false);
+            toast.error("Invalid Quiz ID");
+            return;
+        }
         setLoading(true);
         setLocked(false);
         try {
-            const res = await api.get(`/quizes/${quizId}/leaderboard`);
-            setStandings(res.data);
+            const [lbRes, qRes] = await Promise.allSettled([
+                quizApi.getLeaderboard(numericQuizId),
+                quizApi.getQuizDetails(numericQuizId)
+            ]);
+
+            if (qRes.status === "fulfilled") {
+                setQuizDetails(qRes.value.data);
+            }
+
+            if (lbRes.status === "fulfilled") {
+                setStandings(lbRes.value.data);
+            } else {
+                const err = lbRes.reason;
+                if (err.response && err.response.status === 403) {
+                    setLocked(true);
+                    setLockMessage(err.response.data.detail || "Leaderboard is locked until the quiz has ended.");
+                } else {
+                    console.error("Failed to load leaderboard", err);
+                    toast.error("Failed to load standings data");
+                }
+            }
         } catch (err) {
             console.error(err);
-            if (err.response && err.response.status === 403) {
-                setLocked(true);
-                setLockMessage(err.response.data.detail || "Leaderboard is locked until the quiz has ended.");
-            }
+            toast.error("An unexpected error occurred while loading standings");
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchLeaderboard();
+        if (!isNaN(numericQuizId)) {
+            fetchLeaderboard();
+        }
     }, [quizId]);
+
+    const handleToggleVisibility = async () => {
+        if (!quizDetails || isNaN(numericQuizId)) return;
+        const newShow = !quizDetails.show_leaderboard;
+        try {
+            await quizApi.updateQuiz({ quiz_id: numericQuizId, show_leaderboard: newShow });
+            setQuizDetails({ ...quizDetails, show_leaderboard: newShow });
+            toast.success(`Participant leaderboard visibility set to ${newShow ? "Visible" : "Host Only"}`);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to update visibility");
+        }
+    };
 
     if (loading) {
         return (
@@ -49,14 +89,42 @@ export default function Standings() {
         ">
             <div className="max-w-4xl mx-auto">
                 <button
-                    onClick={() => navigate("/dashboard")}
+                    onClick={() => navigate(quizDetails?.is_owner ? "/host" : "/dashboard")}
                     className="
                         mb-6 flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition
                     "
                 >
                     <ArrowLeft size={16} />
-                    Back to Dashboard
+                    {quizDetails?.is_owner ? "Back to Host Dashboard" : "Back to Dashboard"}
                 </button>
+
+                {quizDetails?.is_owner && (
+                    <div className="
+                        mb-8 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800
+                        flex flex-col md:flex-row items-center justify-between gap-4
+                    ">
+                        <div className="flex items-center gap-3">
+                            <Shield className="text-indigo-600 dark:text-indigo-400" size={24} />
+                            <div>
+                                <h4 className="font-bold text-slate-900 dark:text-slate-100">Host Control View</h4>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    As the quiz owner, you can view standings anytime.
+                                </p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleToggleVisibility}
+                            className="
+                                px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition shadow-sm
+                                bg-indigo-600 hover:bg-indigo-700 text-white
+                            "
+                        >
+                            {quizDetails.show_leaderboard ? <Eye size={16} /> : <EyeOff size={16} />}
+                            Participant Visibility: {quizDetails.show_leaderboard ? "Enabled (Visible)" : "Disabled (Host Only)"}
+                        </button>
+                    </div>
+                )}
 
                 <div className="text-center mb-12">
                     <h1 className="text-4xl font-bold flex justify-center items-center gap-3 font-vend">

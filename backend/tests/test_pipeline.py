@@ -2,10 +2,10 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from app.graph.state import QuizGraphState
-from app.graph.nodes.validate_questions import validate_questions
-from app.graph.nodes.generate_questions import generate_questions
-from app.graph.quiz_graph import should_continue
+from app.ai.state import QuizGraphState
+from app.ai.nodes.question_validator import validate_questions
+from app.ai.nodes.question_generator import generate_questions
+from app.ai.graph import should_continue
 
 async def test_validate_questions_node():
     # Test valid questions
@@ -56,7 +56,7 @@ async def test_validate_questions_node():
     assert res_missing_opts["is_valid"] is False
     assert any("must have a list of options" in err for err in res_missing_opts["errors"])
 
-@patch("app.graph.nodes.generate_questions.get_llm_service")
+@patch("app.ai.nodes.question_generator.get_llm_service")
 async def test_generate_questions_node(mock_get_llm):
     # Mock LLM generation returning a JSON string with markdown blocks
     mock_llm = AsyncMock()

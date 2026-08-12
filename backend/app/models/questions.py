@@ -7,7 +7,7 @@ import enum
 from sqlalchemy import String, Enum as SQLEnum, ForeignKey, DateTime, func, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..db.base import Base
+from app.database import Base
 
 if TYPE_CHECKING:
     from .quizes import Quiz

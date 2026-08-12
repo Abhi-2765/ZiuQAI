@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import api from "../utils/api";
+import { authApi } from "../api/authApi";
 
 export const AuthContext = createContext();
 
@@ -11,7 +11,7 @@ const AuthProvider = ({ children }) => {
 
     const fetchUser = async () => {
         try {
-            const res = await api.get("/auth/me");
+            const res = await authApi.getMe();
             setEmail(res.data.email);
             setName(res.data.username);
             setUserCode(res.data.user_code);

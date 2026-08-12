@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Calendar, Clock, Award, Play, Eye, Share2, Clipboard, Edit, Trash2 } from "lucide-react";
-import api from "../utils/api";
+import { Calendar, Clock, Award, Eye, Share2, Edit, Trash2 } from "lucide-react";
+import { quizApi } from "../api/quizApi";
 
 export default function Host() {
     const navigate = useNavigate();
@@ -11,7 +11,7 @@ export default function Host() {
 
     const fetchQuizzes = async () => {
         try {
-            const res = await api.get("/quizes/my-quizzes");
+            const res = await quizApi.getMyQuizzes();
             setQuizzes(res.data);
         } catch (err) {
             console.error(err);
@@ -25,20 +25,45 @@ export default function Host() {
         fetchQuizzes();
     }, []);
 
-    const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text);
-        toast.success("Registration URL copied to clipboard!");
+    const copyToClipboard = async (text) => {
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+                toast.success("Registration URL copied to clipboard!");
+            } else {
+                toast.info(`Registration URL: ${text}`);
+            }
+        } catch (e) {
+            console.error("Clipboard copy failed", e);
+            toast.error("Failed to copy link to clipboard");
+        }
+    };
+
+    const handleToggleLeaderboard = async (quizId, currentVal) => {
+        const newVal = !currentVal;
+        setQuizzes((prev) =>
+            prev.map((q) => ((q.id ?? q.quiz_id) === quizId ? { ...q, show_leaderboard: newVal } : q))
+        );
+        try {
+            await quizApi.updateQuiz({ quiz_id: quizId, show_leaderboard: newVal });
+            toast.success(`Leaderboard visibility for participants updated`);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to update leaderboard visibility");
+            fetchQuizzes();
+        }
     };
 
     const handleDelete = async (quizId) => {
         if (!window.confirm("Are you sure you want to delete this quiz?")) return;
+        setQuizzes((prev) => prev.filter((q) => (q.id ?? q.quiz_id) !== quizId));
         try {
-            await api.delete("/quizes/delete", { data: { quiz_id: quizId } });
+            await quizApi.deleteQuiz(quizId);
             toast.success("Quiz deleted successfully");
-            fetchQuizzes();
         } catch (err) {
             console.error(err);
             toast.error("Failed to delete quiz");
+            fetchQuizzes();
         }
     };
 
@@ -95,13 +120,25 @@ export default function Host() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {quizzes.map((quiz) => {
+                            const qId = quiz.id ?? quiz.quiz_id;
                             const isDraft = quiz.status === "draft";
-                            const registrationUrl = `${window.location.origin}/attempt?quiz_id=${quiz.id || quiz.quiz_id}`;
-                            const startTime = new Date(quiz.quiz_start_time);
+                            const registrationUrl = `${window.location.origin}/attempt?quiz_id=${qId}`;
+                            
+                            let formattedDate = "N/A";
+                            if (quiz.quiz_start_time) {
+                                const rawStr = String(quiz.quiz_start_time);
+                                const normalizedStr = (rawStr.includes("T") && !rawStr.endsWith("Z") && !rawStr.includes("+"))
+                                    ? `${rawStr}Z`
+                                    : rawStr;
+                                const parsedDate = new Date(normalizedStr);
+                                if (!isNaN(parsedDate.getTime())) {
+                                    formattedDate = `${parsedDate.toLocaleDateString()} ${parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                }
+                            }
                             
                             return (
                                 <div
-                                    key={quiz.id || quiz.quiz_id}
+                                    key={qId}
                                     className="
                                         bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
                                         rounded-3xl p-6 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 shadow-sm
@@ -125,7 +162,7 @@ export default function Host() {
                                         <div className="space-y-2 mb-6">
                                             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                                                 <Calendar size={16} />
-                                                <span>{startTime.toLocaleDateString()} {startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                                <span>{formattedDate}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                                                 <Clock size={16} />
@@ -133,7 +170,7 @@ export default function Host() {
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                                                 <Award size={16} />
-                                                <span className="capitalize">{quiz.quiz_difficulty.toLowerCase()} difficulty</span>
+                                                <span className="capitalize">{String(quiz.quiz_difficulty || "").toLowerCase()} difficulty</span>
                                             </div>
                                         </div>
                                     </div>
@@ -145,7 +182,7 @@ export default function Host() {
                                                     <input
                                                         type="text"
                                                         readOnly
-                                                        value={quiz.id || quiz.quiz_id}
+                                                        value={qId}
                                                         className="
                                                             flex-1 p-2 text-center text-sm font-mono font-bold rounded-lg
                                                             bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700
@@ -163,7 +200,20 @@ export default function Host() {
                                                     </button>
                                                 </div>
                                                 <button
-                                                    onClick={() => navigate(`/standings/${quiz.id || quiz.quiz_id}`)}
+                                                    onClick={() => handleToggleLeaderboard(qId, quiz.show_leaderboard)}
+                                                    className="
+                                                        w-full py-2 px-3 text-xs font-bold rounded-xl border flex items-center justify-between transition
+                                                        bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-violet-500
+                                                    "
+                                                >
+                                                    <span className="text-slate-600 dark:text-slate-400">Participant Leaderboard:</span>
+                                                    <span className={quiz.show_leaderboard ? "text-green-600 font-bold" : "text-amber-500 font-bold"}>
+                                                        {quiz.show_leaderboard ? "Visible" : "Host Only"}
+                                                    </span>
+                                                </button>
+
+                                                <button
+                                                    onClick={() => navigate(`/standings/${qId}`)}
                                                     className="
                                                         w-full py-2.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl
                                                         hover:bg-indigo-100/50 transition border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center gap-2
@@ -176,7 +226,7 @@ export default function Host() {
                                         ) : (
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => navigate("/generate")}
+                                                    onClick={() => navigate(`/generate?draft=${qId}`)}
                                                     className="
                                                         flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl
                                                         transition flex items-center justify-center gap-2
@@ -186,7 +236,7 @@ export default function Host() {
                                                     Edit Draft
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(quiz.id || quiz.quiz_id)}
+                                                    onClick={() => handleDelete(qId)}
                                                     className="
                                                         p-2.5 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 hover:bg-red-100 rounded-xl
                                                     "

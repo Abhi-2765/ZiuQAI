@@ -1,0 +1,39 @@
+# Git ignore rules for ZiuQAI
+
+# Private AI Walkthrough & Developer Notes (Strictly ignored)
+PROJECT_WALKTHROUGH.md
+AI_WALKTHROUGH.md
+
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Python Cache & Build
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Frontend Build
+node_modules/
+dist/
+.eslintcache
+
+# Environment & Secrets
+.env
+*.env
+backend.env
+db.env
+
+# Uploads & Temp Files
+backend/uploads/
+uploads/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import api from "../../utils/api";
+import { authApi } from "../../api/authApi";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthProvider";
@@ -16,17 +16,14 @@ export default function AuthForm({ isLogin }) {
 
     const onSubmit = async (data) => {
         try {
-            const endpoint = isLogin ? "/auth/login" : "/auth/register";
-
-            const response = await api.post(endpoint, data);
+            const response = isLogin ? await authApi.login(data) : await authApi.register(data);
             if (isLogin && response) {
                 setEmail(response.data.email);
                 setName(response.data.username);
                 toast.success("Login successful");
                 navigate("/dashboard");
-            }
-            else {
-                toast.success("User registered successfully")
+            } else {
+                toast.success("User registered successfully");
                 toast.info("Please login to continue");
                 navigate("/auth", { state: { isLogin: true } });
             }

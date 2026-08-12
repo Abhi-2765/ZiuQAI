@@ -8,20 +8,17 @@ from sqlalchemy import String, DateTime, func, ForeignKey, Enum as SQLEnum, Bool
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .users import User
-from ..db.base import Base
+from app.database import Base
 
 if TYPE_CHECKING:
     from .participants import Participant
     from .questions import Question
-    from .chat_session import ChatSession
     from .quiz_resource import QuizResource
-
 
 class Difficulty(str, Enum):
     EASY = "EASY"
     MEDIUM = "MEDIUM"
     HARD = "HARD"
-
 
 class Quiz(Base):
     __tablename__ = "quizes"
@@ -54,12 +51,6 @@ class Quiz(Base):
         back_populates="quizzes",
     )
 
-    # user_responses: Mapped[List["UserResponse"]] = relationship(
-    #     "UserResponse",
-    #     back_populates="quiz",
-    #     cascade="all, delete-orphan",
-    # )
-
     participants: Mapped[List[Participant]] = relationship(
         "Participant",
         back_populates="quiz",
@@ -67,17 +58,13 @@ class Quiz(Base):
     )
 
     questions: Mapped[List[Question]] = relationship(
-         "Question",
-         back_populates="quiz",
-         cascade="all, delete-orphan",
+        "Question",
+        back_populates="quiz",
+        cascade="all, delete-orphan",
     )
-    chat_sessions: Mapped[List[ChatSession]] = relationship(
-         "ChatSession",
-         back_populates="quiz",
-         cascade="all, delete-orphan",
-    )
+
     resources: Mapped[List[QuizResource]] = relationship(
-         "QuizResource",
-         back_populates="quiz",
-         cascade="all, delete-orphan",
+        "QuizResource",
+        back_populates="quiz",
+        cascade="all, delete-orphan",
     )

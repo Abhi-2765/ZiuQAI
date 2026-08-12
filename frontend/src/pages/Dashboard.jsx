@@ -5,7 +5,7 @@ import RouteChip from "../components/Dashboard/RouteChip";
 import ActivityChip from "../components/Dashboard/ActivityChip";
 import { useAuth } from "../context/AuthProvider";
 import { FileText, Clock, ArrowRight } from "lucide-react";
-import api from "../utils/api";
+import { quizApi } from "../api/quizApi";
 
 const Dashboard = () => {
     const { name } = useAuth();
@@ -18,7 +18,7 @@ const Dashboard = () => {
 
     const loadDrafts = async () => {
         try {
-            const res = await api.get("/quizes/my-drafts");
+            const res = await quizApi.getMyDrafts();
             setDrafts(res.data || []);
         } catch (err) {
             console.error("Failed to load drafts:", err);
@@ -33,21 +33,21 @@ const Dashboard = () => {
     const features = [
         {
             key: "generate",
-            label: "Generate Quiz with AI",
+            label: "Generate quiz with AI",
             description: "Create engaging quizzes in minutes using AI.",
             icon: "✨",
             route: "/generate"
         },
         {
             key: "host",
-            label: "Host a Live Quiz",
+            label: "Host a quiz",
             description: "Start a real-time quiz session for your audience.",
             icon: "📡",
             route: "/host"
         },
         {
             key: "attempt",
-            label: "Attempt a Quiz",
+            label: "Attempt a quiz",
             description: "Test your knowledge with new quizzes.",
             icon: "❓",
             route: "/attempt"
@@ -103,7 +103,6 @@ const Dashboard = () => {
                 ))}
             </div>
 
-            {/* Draft Quizzes */}
             {drafts.length > 0 && (
                 <>
                     <p className="text-2xl font-vend font-bold mt-12 mb-4 flex items-center gap-2">
@@ -130,11 +129,10 @@ const Dashboard = () => {
                                         <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
                                             <span>{draft.question_count} questions</span>
                                             <span>•</span>
-                                            <span className={`font-semibold ${
-                                                draft.quiz_difficulty === "EASY" ? "text-green-500" :
+                                            <span className={`font-semibold ${draft.quiz_difficulty === "EASY" ? "text-green-500" :
                                                 draft.quiz_difficulty === "MEDIUM" ? "text-amber-500" :
-                                                "text-red-500"
-                                            }`}>{draft.quiz_difficulty}</span>
+                                                    "text-red-500"
+                                                }`}>{draft.quiz_difficulty}</span>
                                             <span>•</span>
                                             <span>{draft.resource_count} file{draft.resource_count !== 1 ? 's' : ''}</span>
                                         </div>
