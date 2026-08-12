@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthProvider";
 import { Play, Plus, Radio, ArrowRight, ChevronRight } from "lucide-react";
 import { quizApi } from "../api/quizApi";
+import { ROUTES } from "../constants/routes";
 
 export default function Dashboard() {
     const { name } = useAuth();

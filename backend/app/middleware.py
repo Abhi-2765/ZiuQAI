@@ -32,6 +32,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         auth_token = request.cookies.get("access_token")
         if not auth_token:
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                auth_token = auth_header.split(" ")[1]
+
+        if not auth_token:
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Authentication token missing"}

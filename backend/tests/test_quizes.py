@@ -24,12 +24,12 @@ async def test_quiz_flow(client: AsyncClient, db_session: AsyncSession):
     token = login_res.cookies["access_token"]
     client.cookies.set("access_token", token)
 
-    # 2. Create a Quiz (default draft)
+    # 2. Create a Quiz (default draft) with start_time in the future (10 minutes from now)
     quiz_payload = {
         "quiz_name": "Test Science Quiz",
         "question_count": 2,
         "quiz_difficulty": "MEDIUM",
-        "quiz_start_time": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+        "quiz_start_time": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(),
         "quiz_duration": 10,
         "show_leaderboard": True
     }
@@ -41,7 +41,6 @@ async def test_quiz_flow(client: AsyncClient, db_session: AsyncSession):
     quiz_id = quiz_data["id"]
 
     # 3. Add mock questions to the database for this quiz
-    # (Since AI generation is tested separately, we populate mock ones here)
     q1 = Question(
         quiz_id=quiz_id,
         question="What is 2+2?",
@@ -66,22 +65,33 @@ async def test_quiz_flow(client: AsyncClient, db_session: AsyncSession):
     q1_id = db_questions[0].id
     q2_id = db_questions[1].id
 
-    # 4. Register for the quiz
+    # 4. Register for the quiz BEFORE start time -> Success
     reg_res = await client.post(f"/quizes/{quiz_id}/register")
     assert reg_res.status_code == 200
     assert "Registered" in reg_res.json()["message"]
 
+    # Attempt before start time -> 400 Bad Request
+    early_questions_res = await client.get(f"/quizes/{quiz_id}/attempt/questions")
+    assert early_questions_res.status_code == 400
+    assert "has not started yet" in early_questions_res.json()["detail"]
+
     # Check quiz details - registered: True, submitted: False
     details_res = await client.get(f"/quizes/{quiz_id}")
     assert details_res.status_code == 200
-    assert details_res.json()["registered"] is True
-    assert details_res.json()["submitted"] is False
+    assert details_res.json()["is_registered"] is True
+    assert details_res.json()["is_submitted"] is False
 
     # 5. Publish the quiz
     publish_res = await client.post(f"/quizes/{quiz_id}/publish")
     assert publish_res.status_code == 200
 
-    # 6. Get attempt questions (strips answers)
+    # 6. Simulate quiz start by updating start_time to 1 minute ago in DB
+    q_result = await db_session.execute(select(Quiz).where(Quiz.id == quiz_id))
+    quiz_obj = q_result.scalar_one()
+    quiz_obj.quiz_start_time = datetime.now(timezone.utc) - timedelta(minutes=1)
+    await db_session.commit()
+
+    # 7. Get attempt questions now that quiz is live
     questions_res = await client.get(f"/quizes/{quiz_id}/attempt/questions")
     assert questions_res.status_code == 200
     attempt_questions = questions_res.json()
@@ -89,7 +99,7 @@ async def test_quiz_flow(client: AsyncClient, db_session: AsyncSession):
     assert "correct_answer" not in attempt_questions[0]
     assert attempt_questions[0]["options"] is not None
 
-    # 7. Submit responses (1 correct, 1 incorrect)
+    # 8. Submit responses (1 correct, 1 incorrect)
     submit_payload = {
         "responses": {
             str(q1_id): "4",       # Correct
@@ -99,19 +109,19 @@ async def test_quiz_flow(client: AsyncClient, db_session: AsyncSession):
     submit_res = await client.post(f"/quizes/{quiz_id}/attempt/submit", json=submit_payload)
     assert submit_res.status_code == 200
     submit_data = submit_res.json()
-    assert submit_data["score"] == 1
-    assert submit_data["total"] == 2
+    assert submit_data["score"] == 1.0
+    assert submit_data["total_questions"] == 2
 
-    # 8. Check quiz details after submit - submitted should now be True
+    # 9. Check quiz details after submit - submitted should now be True
     details_res_after = await client.get(f"/quizes/{quiz_id}")
     assert details_res_after.status_code == 200
-    assert details_res_after.json()["submitted"] is True
+    assert details_res_after.json()["is_submitted"] is True
 
-    # 9. Verify subsequent attempt / submit requests are rejected
+    # 10. Verify subsequent attempt / submit requests are rejected
     questions_again = await client.get(f"/quizes/{quiz_id}/attempt/questions")
     assert questions_again.status_code == 403
     assert "already submitted" in questions_again.json()["detail"]
 
     submit_again = await client.post(f"/quizes/{quiz_id}/attempt/submit", json=submit_payload)
-    assert submit_again.status_code == 400
+    assert submit_again.status_code == 403
     assert "already submitted" in submit_again.json()["detail"]

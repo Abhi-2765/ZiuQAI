@@ -16,11 +16,11 @@ const GenerateQuiz = () => {
     const [publishing, setPublishing] = useState(false);
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(false);
-    
+
     // Lifted state for sources
     const [files, setFiles] = useState([]);
     const [urls, setUrls] = useState([]);
-    
+
     const [config, setConfig] = useState({
         quiz_name: "",
         question_count: 10,
@@ -43,14 +43,14 @@ const GenerateQuiz = () => {
         try {
             const quizRes = await quizApi.getQuizDetails(draftQuizId);
             const quiz = quizRes.data;
-            
+
             setQuizId(draftQuizId);
             setConfig({
                 quiz_name: quiz.quiz_name || "",
                 question_count: quiz.question_count || 10,
                 quiz_difficulty: quiz.quiz_difficulty || "MEDIUM",
-                quiz_start_time: quiz.quiz_start_time 
-                    ? new Date(quiz.quiz_start_time).toISOString().slice(0, 16) 
+                quiz_start_time: quiz.quiz_start_time
+                    ? new Date(quiz.quiz_start_time).toISOString().slice(0, 16)
                     : "",
                 quiz_duration: quiz.quiz_duration || 15,
                 show_leaderboard: quiz.show_leaderboard ?? true,
@@ -59,7 +59,7 @@ const GenerateQuiz = () => {
 
             const resourcesRes = await ingestApi.getResources(draftQuizId);
             const resources = resourcesRes.data || [];
-            
+
             const restoredFiles = resources.map((r) => ({
                 id: `server-${r.id}`,
                 file: null,
@@ -135,7 +135,7 @@ const GenerateQuiz = () => {
         setGenerating(true);
         try {
             const res = await quizApi.generateAIQuiz(quizId);
-            setQuestions(res.data);
+            setQuestions(res.data.questions || []);
             toast.success("AI generated questions successfully!");
         } catch (err) {
             console.error(err);
@@ -220,11 +220,11 @@ const GenerateQuiz = () => {
                     {step === 1 && <ConfigureQuiz config={config} setConfig={setConfig} />}
                     {step === 2 && <Sources quizId={quizId} files={files} setFiles={setFiles} urls={urls} setUrls={setUrls} />}
                     {step === 3 && (
-                        <PreviewQuiz 
-                            quizId={quizId} 
-                            questions={questions} 
-                            onGenerate={handleGenerate} 
-                            generating={generating} 
+                        <PreviewQuiz
+                            quizId={quizId}
+                            questions={questions}
+                            onGenerate={handleGenerate}
+                            generating={generating}
                         />
                     )}
                 </div>

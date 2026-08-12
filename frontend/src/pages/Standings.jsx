@@ -34,7 +34,7 @@ export default function Standings() {
             }
 
             if (lbRes.status === "fulfilled") {
-                setStandings(lbRes.value.data);
+                setStandings(lbRes.value.data.leaderboard || []);
             } else {
                 const err = lbRes.reason;
                 if (err.response && err.response.status === 403) {
@@ -158,9 +158,10 @@ export default function Standings() {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {standings.map((student) => (
+                        {standings.map((student, idx) => (
                             <StandingItem
-                                key={student.position}
+                                key={student.rank ?? student.user_id ?? idx}
+                                totalMarks={quizDetails?.question_count}
                                 {...student}
                             />
                         ))}
@@ -171,7 +172,11 @@ export default function Standings() {
     );
 }
 
-const StandingItem = ({ position, name, marksObtained, totalMarks }) => {
+const StandingItem = (props) => {
+    const position = props.rank ?? props.position;
+    const name = props.username ?? props.name ?? "Anonymous";
+    const marksObtained = props.score ?? props.marksObtained ?? 0;
+    const totalMarks = props.totalMarks ?? props.total ?? props.total_questions ?? props.question_count ?? 10;
     let rankIcon = <span className="text-xl font-bold w-8 text-center">{position}</span>;
     let rankStyles = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
 

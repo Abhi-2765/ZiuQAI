@@ -1,6 +1,7 @@
 # Git ignore rules for ZiuQAI
 
 # Private AI Walkthrough & Developer Notes (Strictly ignored)
+.gitignore
 PROJECT_WALKTHROUGH.md
 AI_WALKTHROUGH.md
 

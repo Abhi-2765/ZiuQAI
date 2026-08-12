@@ -16,11 +16,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
 router = APIRouter(tags=["Ingestion"])
 
-def get_current_uid(request: Request) -> str:
-    uid = getattr(request.state, "uid", None)
-    if not uid:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return uid
+from app.dependencies import get_current_uid
 
 def extract_text(file_path: str) -> str:
     suffix = os.path.splitext(file_path)[1].lower()
@@ -49,14 +45,21 @@ def cleanup_quiz_directory(quiz_id: int) -> None:
 
 @router.post("/upload")
 async def upload_file(
-    request: Request,
     file: UploadFile = File(...),
     quiz_id: int = None,
+    uid: str = Depends(get_current_uid),
     db: AsyncSession = Depends(get_db),
 ):
-    get_current_uid(request)
     if not quiz_id:
         raise HTTPException(status_code=400, detail="quiz_id parameter is required")
+
+    from app.models.quizes import Quiz
+    q_result = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
+    quiz = q_result.scalar_one_or_none()
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    if quiz.creator_uid != uid:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this quiz")
         
     if not file.filename:
         raise HTTPException(status_code=400, detail="Invalid file")
@@ -128,10 +131,17 @@ async def upload_file(
 @router.get("/resources/{quiz_id}")
 async def list_resources(
     quiz_id: int,
-    request: Request,
+    uid: str = Depends(get_current_uid),
     db: AsyncSession = Depends(get_db),
 ):
-    get_current_uid(request)
+    from app.models.quizes import Quiz
+    q_result = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
+    quiz = q_result.scalar_one_or_none()
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    if quiz.creator_uid != uid:
+        raise HTTPException(status_code=403, detail="Not authorized to view resources for this quiz")
+
     result = await db.execute(select(QuizResource).where(QuizResource.quiz_id == quiz_id))
     resources = result.scalars().all()
     
@@ -149,10 +159,16 @@ async def list_resources(
 async def delete_resource(
     quiz_id: int,
     resource_id: int,
-    request: Request,
+    uid: str = Depends(get_current_uid),
     db: AsyncSession = Depends(get_db),
 ):
-    get_current_uid(request)
+    from app.models.quizes import Quiz
+    q_result = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
+    quiz = q_result.scalar_one_or_none()
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    if quiz.creator_uid != uid:
+        raise HTTPException(status_code=403, detail="Not authorized to delete resources for this quiz")
     
     result = await db.execute(
         select(QuizResource).where(QuizResource.id == resource_id, QuizResource.quiz_id == quiz_id)
@@ -171,4 +187,4 @@ async def delete_resource(
 
     await db.delete(resource)
     await db.commit()
-    return {"status": "deleted", "resource_id": resource_id}
+    return {"message": "Resource deleted successfully"}

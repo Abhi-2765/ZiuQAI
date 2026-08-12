@@ -22,7 +22,8 @@ export default function Attempt() {
     }, [searchParams]);
 
     useEffect(() => {
-        if (!quizDetails || quizDetails.registered === false) return;
+        const isRegistered = quizDetails?.is_registered ?? quizDetails?.registered;
+        if (!quizDetails || !isRegistered) return;
         
         const startTime = new Date(quizDetails.quiz_start_time).getTime();
         
@@ -176,60 +177,107 @@ export default function Attempt() {
                             </div>
 
                             <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                                {!quizDetails.registered ? (
-                                    <button
-                                        onClick={handleRegister}
-                                        disabled={registering}
-                                        className="
-                                            w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg
-                                            shadow-indigo-200 dark:shadow-none transition-all duration-300 disabled:opacity-50
-                                        "
-                                    >
-                                        {registering ? "Registering..." : "Register for Quiz"}
-                                    </button>
-                                ) : quizDetails.submitted ? (
-                                    <div className="text-center space-y-4">
-                                        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-200/50 flex flex-col items-center">
-                                            <span className="text-xs font-semibold uppercase tracking-wider mb-1">Status</span>
-                                            <span className="text-xl font-extrabold font-vend flex items-center gap-2">
-                                                <CheckCircle2 size={20} />
-                                                Attempt Submitted
-                                            </span>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                                You have already completed this quiz attempt.
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() => navigate(`/standings/${quizDetails.id}`)}
-                                            className="
-                                                w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg
-                                                shadow-indigo-200 dark:shadow-none transition-all duration-300 flex items-center justify-center gap-2
-                                            "
-                                        >
-                                            View Standings / Leaderboard
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="text-center space-y-4">
-                                        {timeLeftToStart > 0 ? (
+                                {(() => {
+                                    const isRegistered = quizDetails.is_registered ?? quizDetails.registered;
+                                    const isSubmitted = quizDetails.is_submitted ?? quizDetails.submitted;
+                                    const now = Date.now();
+                                    const startMs = new Date(quizDetails.quiz_start_time).getTime();
+                                    const endMs = startMs + (quizDetails.quiz_duration || 0) * 60 * 1000;
+                                    const hasStarted = now >= startMs;
+                                    const hasEnded = now > endMs;
+
+                                    if (!isRegistered) {
+                                        if (hasStarted) {
+                                            return (
+                                                <div className="text-center space-y-2">
+                                                    <button
+                                                        disabled
+                                                        className="w-full py-3.5 bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold rounded-2xl cursor-not-allowed"
+                                                    >
+                                                        Registration Closed
+                                                    </button>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                        Registration closed as the quiz has already started.
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return (
+                                            <button
+                                                onClick={handleRegister}
+                                                disabled={registering}
+                                                className="
+                                                    w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg
+                                                    shadow-indigo-200 dark:shadow-none transition-all duration-300 disabled:opacity-50
+                                                "
+                                            >
+                                                {registering ? "Registering..." : "Register for Quiz"}
+                                            </button>
+                                        );
+                                    }
+
+                                    if (isSubmitted) {
+                                        return (
+                                            <div className="text-center space-y-4">
+                                                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-200/50 flex flex-col items-center">
+                                                    <span className="text-xs font-semibold uppercase tracking-wider mb-1">Status</span>
+                                                    <span className="text-xl font-extrabold font-vend flex items-center gap-2">
+                                                        <CheckCircle2 size={20} />
+                                                        Attempt Submitted
+                                                    </span>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                        You have already completed this quiz attempt.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => navigate(`/standings/${quizDetails.id}`)}
+                                                    className="
+                                                        w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg
+                                                        shadow-indigo-200 dark:shadow-none transition-all duration-300 flex items-center justify-center gap-2
+                                                    "
+                                                >
+                                                    View Standings / Leaderboard
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+
+                                    if (!hasStarted) {
+                                        return (
                                             <div className="p-4 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 rounded-2xl border border-amber-200/50 flex flex-col items-center">
                                                 <span className="text-xs font-semibold uppercase tracking-wider mb-1">Starts In</span>
                                                 <span className="text-3xl font-extrabold font-mono">{formatCountdown(timeLeftToStart)}</span>
                                             </div>
-                                        ) : (
-                                            <button
-                                                onClick={() => navigate(`/arena/${quizDetails.id}`)}
-                                                className="
-                                                    w-full py-3.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-lg
-                                                    shadow-green-200 dark:shadow-none transition-all duration-300 flex items-center justify-center gap-2
-                                                "
-                                            >
-                                                <Play size={18} />
-                                                Start Attempt
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
+                                        );
+                                    }
+
+                                    if (hasEnded) {
+                                        return (
+                                            <div className="text-center space-y-2">
+                                                <div className="p-4 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 rounded-2xl border border-red-200/50 flex flex-col items-center">
+                                                    <span className="text-xs font-semibold uppercase tracking-wider mb-1">Status</span>
+                                                    <span className="text-xl font-extrabold font-vend">Quiz Window Expired</span>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                        The quiz time window for this attempt has ended.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <button
+                                            onClick={() => navigate(`/arena/${quizDetails.id}`)}
+                                            className="
+                                                w-full py-3.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-lg
+                                                shadow-green-200 dark:shadow-none transition-all duration-300 flex items-center justify-center gap-2
+                                            "
+                                        >
+                                            <Play size={18} />
+                                            Start Attempt
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         </div>
                     )}

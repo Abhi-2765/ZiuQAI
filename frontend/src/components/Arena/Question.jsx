@@ -11,9 +11,16 @@ export default function Question({ question, selectedAnswer, onAnswerChange }) {
     const { question: text, type, question_type, options } = safeQuestion;
     const qType = type || question_type || "scq";
 
+    // TODO: Make the LLM prompt stricter so options always come back as plain strings,
+    // then remove this object-to-string normalization fallback.
     const finalOptions = (qType === "tof" && (!options || options.length === 0))
         ? ["True", "False"]
-        : (options || []);
+        : (options || []).map(opt => {
+            if (typeof opt === "object" && opt !== null) {
+                return String(opt.text || opt.value || opt.label || JSON.stringify(opt));
+            }
+            return String(opt);
+        });
 
     const getSelectedArray = () => {
         if (typeof selectedAnswer === "string") {

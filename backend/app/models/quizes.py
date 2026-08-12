@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional, TYPE_CHECKING
 from enum import Enum
+from typing import Callable
 
 from sqlalchemy import String, DateTime, func, ForeignKey, Enum as SQLEnum, Boolean, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
     from .participants import Participant
     from .questions import Question
     from .quiz_resource import QuizResource
+    from .chat_session import ChatSession
 
 class Difficulty(str, Enum):
     EASY = "EASY"
@@ -38,7 +40,7 @@ class Quiz(Base):
 
     show_leaderboard: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     status: Mapped[str] = mapped_column(String, default="draft", nullable=False)
-    question_types: Mapped[Optional[list]] = mapped_column(JSON, default=["scq", "mcq"], nullable=True)
+    question_types: Mapped[Optional[list]] = mapped_column(JSON, default=lambda: ["scq", "mcq"], nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -65,6 +67,12 @@ class Quiz(Base):
 
     resources: Mapped[List[QuizResource]] = relationship(
         "QuizResource",
+        back_populates="quiz",
+        cascade="all, delete-orphan",
+    )
+
+    chat_sessions: Mapped[List[ChatSession]] = relationship(
+        "ChatSession",
         back_populates="quiz",
         cascade="all, delete-orphan",
     )

@@ -83,15 +83,20 @@ export default function Arena() {
                 });
                 setStatuses(initialStatuses);
 
-                // Timer wall-clock expiration persistence
+                // Timer wall-clock expiration persistence capped at absolute quiz_end_time
                 const savedExpires = localStorage.getItem(`ziuq_expires_at_${quizId}`);
                 let remainingSeconds = totalDuration;
                 if (savedExpires && !isNaN(parseInt(savedExpires, 10))) {
                     const diff = Math.floor((parseInt(savedExpires, 10) - Date.now()) / 1000);
                     remainingSeconds = diff > 0 ? diff : 0;
                 } else {
-                    const expiresAt = Date.now() + totalDuration * 1000;
+                    const absoluteEndMs = detailsRes.data?.quiz_start_time 
+                        ? new Date(detailsRes.data.quiz_start_time).getTime() + totalDuration * 1000 
+                        : Date.now() + totalDuration * 1000;
+                    const expiresAt = Math.min(Date.now() + totalDuration * 1000, absoluteEndMs);
                     localStorage.setItem(`ziuq_expires_at_${quizId}`, expiresAt.toString());
+                    const diff = Math.floor((expiresAt - Date.now()) / 1000);
+                    remainingSeconds = diff > 0 ? diff : 0;
                 }
                 setTime(remainingSeconds);
             } catch (err) {

@@ -5,6 +5,8 @@ from .participants import Participant
 from .questions import Question, QuestionType
 from .user_responses import UserResponse
 from .quiz_resource import QuizResource
+from .chat_session import ChatSession
+from .chat_message import ChatMessage
 
 __all__ = [
     "User",
@@ -15,4 +17,6 @@ __all__ = [
     "QuestionType",
     "UserResponse",
     "QuizResource",
+    "ChatSession",
+    "ChatMessage",
 ]
